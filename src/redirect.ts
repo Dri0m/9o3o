@@ -1,7 +1,7 @@
 import {all_the_launch_commands} from "./main";
 
 window.addEventListener('load', function init() {
-  const redirect_to = "http://localhost:8080/redirect-root/";
+  const redirect_to = "https://ooooooooo.ooo/htdocs/";
   const entry = all_the_launch_commands();
 
   // Set the base URL for requests with relative files.

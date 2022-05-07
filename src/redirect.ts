@@ -1,11 +1,10 @@
-window.addEventListener('load', function init() {
-  // Get search paramters
-  // @TODO Validate parameters
-  const search_params = new URLSearchParams(window.location.search);
-  const redirect_to = search_params.get('redirect_to') || '';
-  const entry = search_params.get('entry') || '';
+import {all_the_launch_commands} from "./main";
 
-  // Set the base URL for requsts with relative files.
+window.addEventListener('load', function init() {
+  const redirect_to = "http://localhost:8080/redirect-root/";
+  const entry = all_the_launch_commands();
+
+  // Set the base URL for requests with relative files.
   // The base is set so all relative paths are relative to the entry file.
   // Note: This makes it possible for the Flash application to use relative paths.
   { // <- This scope is here just to separate this messy code from the parent scope.
@@ -23,9 +22,6 @@ window.addEventListener('load', function init() {
   const player = ruffle.createPlayer();
   document.body.appendChild(player);
 
-  // Load the Flash file into Ruffle
-  player.load(entry);
-
   // Initialize state
   // Note: These values to not have to be stored globally, you could store them wherever.
   window.RuffleRedirect = {
@@ -33,11 +29,29 @@ window.addEventListener('load', function init() {
     original_fetch: window.fetch,
   };
 
+  // Load the Flash file into Ruffle
+  //player.load(fakeify(new URL(entry)).toString());
+
   // Replace the fetch function with the wrapped version.
   // This is the function that Ruffle calls whenever it makes a request.
   // Note: This is done last so all of Ruffles files are loaded before we start rerouting requests.
-  window.fetch = wrappedFetch;
+  setTimeout(function() {
+    window.fetch = wrappedFetch;
+    player.load(entry);
+  }, 1000);
 });
+
+
+function fakeify(input_url: URL): RequestInfo {
+  const fake_input_url = new URL(window.RuffleRedirect!.redirect_to.href);
+
+  fake_input_url.pathname += input_url.hostname;
+  if (!input_url.pathname.startsWith('/')) { fake_input_url.pathname += '/'; }
+  fake_input_url.pathname += input_url.pathname;
+
+  return fake_input_url.href;
+}
+
 
 async function wrappedFetch(input: RequestInfo, init?: RequestInit): Promise<Response> {
   // Get the requested URL
@@ -54,15 +68,18 @@ async function wrappedFetch(input: RequestInfo, init?: RequestInit): Promise<Res
   // Modify the arguments to redirect the request
   // Note: Feel free to edit how input_url is remapped. Maybe you want to include the protocol, port etc.
   // Diagram over URL components: https://nodejs.org/api/url.html#url_url_strings_and_url_objects
-  { // <- This scope is here just to separate this messy code from the parent scope.
-    const fake_input_url = new URL(window.RuffleRedirect!.redirect_to.href);
 
-    fake_input_url.pathname += input_url.hostname;
-    if (!input_url.pathname.startsWith('/')) { fake_input_url.pathname += '/'; }
-    fake_input_url.pathname += input_url.pathname;
+  fake_input = fakeify(input_url)
 
-    fake_input = fake_input_url.href;
-  }
+  // { // <- This scope is here just to separate this messy code from the parent scope.
+  //   const fake_input_url = new URL(window.RuffleRedirect!.redirect_to.href);
+
+  //   fake_input_url.pathname += input_url.hostname;
+  //   if (!input_url.pathname.startsWith('/')) { fake_input_url.pathname += '/'; }
+  //   fake_input_url.pathname += input_url.pathname;
+
+  //   fake_input = fake_input_url.href;
+  // }
 
   if (input instanceof Request) { fake_init = input; }
 

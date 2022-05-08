@@ -4,3 +4,4 @@
 /package-lock.json
 
 /static/redirect-root
+/backend/db.db

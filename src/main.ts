@@ -1,7 +1,7 @@
 window.addEventListener('load', function all_the_launch_commands() {
   console.log("fetching random game...")
 
-  fetch('http://api.ooooooooo.ooo/random')
+  fetch('https://api.ooooooooo.ooo/random')
     .then(function (response) {
       return response.json();
     })

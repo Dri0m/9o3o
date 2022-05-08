@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+
 func initLogger() *logrus.Logger {
 	//mw := io.MultiWriter(os.Stdout, &lumberjack.Logger{
 	//	Filename:   "log.log",

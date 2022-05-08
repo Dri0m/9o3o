@@ -3,6 +3,7 @@ module github.com/Dri0m/9o3o/backend
 go 1.18
 
 require (
+	github.com/felixge/httpsnoop v1.0.2
 	github.com/gorilla/mux v1.8.0
 	github.com/sirupsen/logrus v1.8.1
 	gorm.io/driver/sqlite v1.3.2

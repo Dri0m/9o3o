@@ -57,10 +57,12 @@ func main() {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/random", randomHandler).Methods("GET")
+	r.HandleFunc("/game/{uuid}/worky", workyHandler).Methods("POST")
+	r.HandleFunc("/game/{uuid}/not-worky", notWorkyHandler).Methods("POST")
 	http.Handle("/", r)
 
 	srv := &http.Server{
-		Handler: r,
+		Handler: LogRequestHandler(r),
 		Addr:    "127.0.0.1:8985",
 		// Good practice: enforce timeouts for servers you create!
 		WriteTimeout: 15 * time.Second,
@@ -68,6 +70,32 @@ func main() {
 	}
 
 	l.Fatal(srv.ListenAndServe())
+}
+
+func workyHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	uuid := vars["uuid"]
+
+	if err := addComment(uuid, "works", ""); err != nil {
+		l.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func notWorkyHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	uuid := vars["uuid"]
+
+	if err := addComment(uuid, "broken", ""); err != nil {
+		l.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func randomHandler(w http.ResponseWriter, r *http.Request) {
@@ -88,18 +116,18 @@ func randomHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(&gameska)
 }
 
-func addComment(uuid string) error {
+func addComment(uuid, rating, message string) error {
 	var gameska Game
-	if err := db.Where(&Game{UUID: "test"}).First(&gameska).Error; err != nil {
+	if err := db.Where(&Game{UUID: uuid}).First(&gameska).Error; err != nil {
 		return err
 	}
 
 	var ratingosek Rating
-	if err := db.Where(&Rating{Name: "greatest"}).First(&ratingosek).Error; err != nil {
+	if err := db.Where(&Rating{Name: rating}).First(&ratingosek).Error; err != nil {
 		return err
 	}
 
-	gameska.Comments = append(gameska.Comments, Comment{Rating: ratingosek, Message: "hahaaa"})
+	gameska.Comments = append(gameska.Comments, Comment{Rating: ratingosek, Message: message})
 	if err := db.Save(&gameska).Error; err != nil {
 		return err
 	}

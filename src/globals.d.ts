@@ -24,4 +24,5 @@ declare interface Window {
     redirect_to: URL;
     original_fetch: typeof fetch;
   };
+  gameData: any;
 }

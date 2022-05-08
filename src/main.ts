@@ -7,6 +7,7 @@ window.addEventListener('load', function all_the_launch_commands() {
     })
     .then(function (myJson: any) {
       console.log(myJson)
+      window.gameData = myJson;
       init(myJson.launch_command)
     });
 });

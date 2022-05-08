@@ -3,7 +3,6 @@ var path = require('path');
 module.exports = {
   entry: {
     main: './src/main.ts',
-    redirect: './src/redirect.ts',
   },
   mode: 'development',
   module: {

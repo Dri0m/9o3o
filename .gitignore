@@ -1,7 +1,6 @@
-/.vscode
-
 /node_modules
 /package-lock.json
 
 /static/redirect-root
 /backend/db.db
+/backend/flashpoint.sqlite

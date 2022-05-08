@@ -1,4 +1,6 @@
-import {all_the_launch_commands} from "./main";
+function all_the_launch_commands() {
+  return "https://www.andkon.com/arcade/sport/bowman/bowman.swf";
+}
 
 window.addEventListener('load', function init() {
   const redirect_to = "https://ooooooooo.ooo/htdocs/";
@@ -42,8 +44,8 @@ window.addEventListener('load', function init() {
 });
 
 
-function fakeify(input_url: URL): RequestInfo {
-  const fake_input_url = new URL(window.RuffleRedirect!.redirect_to.href);
+function fakeify(input_url) {
+  const fake_input_url = new URL(window.RuffleRedirect.redirect_to.href);
 
   fake_input_url.pathname += input_url.hostname;
   if (!input_url.pathname.startsWith('/')) { fake_input_url.pathname += '/'; }
@@ -53,17 +55,17 @@ function fakeify(input_url: URL): RequestInfo {
 }
 
 
-async function wrappedFetch(input: RequestInfo, init?: RequestInit): Promise<Response> {
+async function wrappedFetch(input, init) {
   // Get the requested URL
-  let input_url: URL;
+  let input_url;
   if (input instanceof Request) {
     input_url = new URL(input.url);
   } else {
     input_url = new URL(input + '');
   }
 
-  let fake_input: RequestInfo = input;
-  let fake_init: RequestInit | undefined = init;
+  let fake_input = input;
+  let fake_init = init;
 
   // Modify the arguments to redirect the request
   // Note: Feel free to edit how input_url is remapped. Maybe you want to include the protocol, port etc.
@@ -86,7 +88,7 @@ async function wrappedFetch(input: RequestInfo, init?: RequestInit): Promise<Res
   // Note: This is just for debugging and troubleshooting purposes
   console.log('Redirected request', 'From:', input_url.href, 'To:', fake_input);
 
-  const original_fetch = window.RuffleRedirect!.original_fetch;
+  const original_fetch = window.RuffleRedirect.original_fetch;
   const response = await original_fetch(fake_input, fake_init);
 
   // Note: It is possible to create a new "fake" response and make any modifications you want.

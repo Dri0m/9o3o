@@ -1,15 +1,16 @@
-// Create global variable that will contain game data
-let json;
+// Global variable that will contain the game's UUID
+let uuid = '';
 
 // URL of Flashpoint's htdocs folder
 const htdocs = 'https://ooooooooo.ooo/htdocs/';
 // URL to fetch a random game from
 const random = 'https://api.ooooooooo.ooo/random';
-// URL templates to tell the site that a game is or isn't working
-const working = (uuid) => `https://api.ooooooooo.ooo/game/${uuid}/worky`;
-const broken  = (uuid) => `https://api.ooooooooo.ooo/game/${uuid}/not-worky`;
+// URL to tell the site that the game is working
+const working = () => `https://api.ooooooooo.ooo/game/${uuid}/worky`;
+// URL to tell the site that the game is broken
+const broken = () => `https://api.ooooooooo.ooo/game/${uuid}/not-worky`;
 
-// Create copy of unaltered fetch() method
+// Copy of the unaltered fetch() method
 const originalFetch = window.fetch;
 
 // To-do: figure out why 'load' event never fires
@@ -20,40 +21,43 @@ document.addEventListener('DOMContentLoaded', () => {
     .then((response) => response.json())
     // Do the things
     .then((data) => {
-        // Initialize global variable with JSON data
-        json = data;
-        
-        // Store original, unaltered URL of game
-        const baseURL = new URL(json.launch_command);
+        // Fill in the UUID for use by the voting function
+        uuid = data.uuid;
         
         // Create Ruffle instance and add it to DOM
         const player = window.RufflePlayer.newest().createPlayer();
         document.querySelector('#player').append(player);
         
+        // Set base path for all resources to that of main SWF
+        window.RufflePlayer.config.base = data.launch_command.substring(0, data.launch_command.lastIndexOf('/'));
+        
         // Add redirection to fetch() method
         // Concept adapted from https://github.com/TBubba/ruffle-redirect-poc
         window.fetch = async (resource, options) => {
-            // Get URL of requested file relative to base
-            const resourceURL = new URL(resource instanceof Request ? resource.url : resource, baseURL.href);
+            // Get URL object for requested resource
+            let resourceURL = new URL(resource instanceof Request ? resource.url : resource);
             
             // Don't redirect if the file is a Ruffle dependency or part of a browser extension
             if (resourceURL.hostname == 'unpkg.com' || !resourceURL.protocol.startsWith('http'))
                 return await originalFetch(resource, options);
-            else
-                return await originalFetch(htdocs + resourceURL.hostname + resourceURL.pathname, options);
+            
+            // Otherwise, fetch the requested resource from htdocs instead
+            return await originalFetch(htdocs + resourceURL.hostname + resourceURL.pathname, options);
         }
         
         // Load game from original URL
         // This will be redirected by the modified fetch() method as well as any other files the game requests
-        player.load(baseURL.href);
+        player.load(data.launch_command);
         
         // Display title of game
-        document.querySelector('#title').textContent = json.title;
+        document.querySelector('#title').textContent = data.title;
         
-        // Set dimensions of player to that of the game once loaded
+        // Once loaded, set dimensions of player to that of the SWF
         player.addEventListener('loadedmetadata', () => {
-            player.style.width  = player.metadata.width  + 'px';
-            player.style.height = player.metadata.height + 'px';
+            if (player.metadata.width > 1 && player.metadata.height > 1) {
+                player.style.width  = player.metadata.width  + 'px';
+                player.style.height = player.metadata.height + 'px';
+            }
         });
         
         // Now that everything else is ready, display voting prompt
@@ -64,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Send vote to server
 function vote(callback) {
     let xhr = new XMLHttpRequest();
-    xhr.open('POST', callback(json.uuid), true);
+    xhr.open('POST', callback(), true);
     xhr.send();
     
     // Replace voting buttons with a thank you message

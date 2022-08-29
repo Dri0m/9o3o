@@ -1,81 +1,18 @@
 <!DOCTYPE html>
 <html>
-
-<head>
-  <title>nine o three o</title>
-  <style>
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: black;
-      color: white;
-    }
-    a:link {
-      color: white;
-      text-decoration: underline;
-    }
-
-    /* visited link */
-    a:visited {
-      color: white;
-      text-decoration: underline;
-    }
-
-    /* mouse over link */
-    a:hover {
-      color: hotpink;
-      text-decoration: underline;
-    }
-
-    ruffle-player {
-      width: 50vw;
-      height: 75vh;
-      border: none;
-      margin-left: 25vw;
-      margin-right: 25vw;
-    }
-
-    .center {
-      text-align: center;
-      margin-top: 50px;
-      width: 100%;
-    }
-  </style>
-  <script src="main.bundle.js"></script>
-</head>
-
-<body>
-  <script src="ruffle/ruffle.js"></script>
-  <script>
-    function worky() {
-      var xhr = new XMLHttpRequest();
-      xhr.open("POST", `https://api.ooooooooo.ooo/game/${window.gameData["uuid"]}/worky`, true);
-      xhr.send();
-      document.getElementsByClassName("center")[0].innerHTML = "Thanks for the feedback."
-    }
-    function notWorky() {
-      var xhr = new XMLHttpRequest();
-      xhr.open("POST", `https://api.ooooooooo.ooo/game/${window.gameData["uuid"]}/not-worky`, true);
-      xhr.send();
-      document.getElementsByClassName("center")[0].innerHTML = "Thanks for the feedback."
-    }
-
-    function addBot() {
-      var players = document.getElementsByTagName("ruffle-player");
-      console.log(players.length);
-      if (players.length == 0) {
-        setTimeout(addBot, 100)
-      } else {
-        var div = document.createElement("div")
-        div.className = "center"
-        div.innerHTML = "Ruffle is in experimental phase and most games will not run properly at this time.<br>"
-        div.innerHTML += `Is this game working? <a href="javascript:worky();">(yes)</a> or <a href="javascript:notWorky();">(no)</a>`
-        document.body.appendChild(div)
-      }
-    }
-    addBot()
-  </script>
-</body>
-
+    <head>
+        <title>nine o three o</title>
+        <link rel="stylesheet" href="main.css">
+        <script src="main.js"></script>
+        <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+    </head>
+    <body>
+        <span id="title"></span>
+        <div id="player"></div>
+        Ruffle is still in development and many games will not run properly at this time.
+        <div id="vote" hidden>
+            <span>Is this game working? <a href="javascript:vote(working)">[Yes]</a> or <a href="javascript:vote(broken)">[No]</a></span>
+            <span hidden>Thanks for the feedback.</span>
+        </div>
+    </body>
 </html>

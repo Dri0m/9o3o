@@ -1,6 +1,5 @@
-/node_modules
-/package-lock.json
-
-/static/redirect-root
+/backend/backend.exe
 /backend/db.db
 /backend/flashpoint.sqlite
+/backend/flashpoint.sqlite-shm
+/backend/flashpoint.sqlite-wal

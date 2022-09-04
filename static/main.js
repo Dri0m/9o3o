@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         // Now that everything else is ready, display voting prompt
-        document.querySelector('#footer > div:last-child').hidden = false;
+        document.querySelector('#vote').hidden = false;
     });
 });
 

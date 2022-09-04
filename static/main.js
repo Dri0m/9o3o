@@ -6,9 +6,9 @@ const htdocs = 'https://ooooooooo.ooo/htdocs/';
 // URL to fetch a random game from
 const random = 'https://api.ooooooooo.ooo/random';
 // URL to tell the site that the game is working
-const working = () => `https://api.ooooooooo.ooo/game/${uuid}/worky`;
+const working = () => `https://api.ooooooooo.ooo/working/${uuid}`;
 // URL to tell the site that the game is broken
-const broken = () => `https://api.ooooooooo.ooo/game/${uuid}/not-worky`;
+const broken = () => `https://api.ooooooooo.ooo/broken/${uuid}`;
 
 // Copy of the unaltered fetch() method
 const originalFetch = window.fetch;
@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('#player').append(player);
         
         // Set base path for all resources to that of main SWF
-        window.RufflePlayer.config.base = data.launch_command.substring(0, data.launch_command.lastIndexOf('/'));
+        window.RufflePlayer.config.base = data.launchCommand.substring(0, data.launchCommand.lastIndexOf('/'));
         
         // Add redirection to fetch() method
         // Concept adapted from https://github.com/TBubba/ruffle-redirect-poc
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Load game from original URL
         // This will be redirected by the modified fetch() method as well as any other files the game requests
-        player.load(data.launch_command);
+        player.load(data.launchCommand);
         
         // Display title of game
         document.querySelector('#title').textContent = data.title;

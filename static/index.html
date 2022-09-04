@@ -7,12 +7,26 @@
         <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
     </head>
     <body>
-        <span id="title"></span>
+        <div id="header">
+            <span id="title"></span>
+            <span id="direct" hidden>
+                <a href="">Direct link</a>
+            </span>
+        </div>
         <div id="player"></div>
-        Ruffle is still in development and many games will not run properly at this time.
-        <div id="vote" hidden>
-            <span>Is this game working? <a href="javascript:vote(working)">[Yes]</a> or <a href="javascript:vote(broken)">[No]</a></span>
-            <span hidden>Thanks for the feedback.</span>
+        <div id="random">
+            <a href="./">Random (filtered)</a>
+            <a href="./?nsfw">Random (unfiltered)</a>
+        </div>
+        Ruffle is still in development and not everything will run properly at this time.
+        <div id="footer">
+            <div id="rating">
+                <b>Compatibility rating:</b> <span></span>
+            </div>
+            <div id="vote">
+                <span>Is this entry working? <a href="javascript:vote(working)">[Yes]</a> or <a href="javascript:vote(broken)">[No]</a></span>
+                <span hidden>Thanks for the feedback.</span>
+            </div>
         </div>
     </body>
 </html>

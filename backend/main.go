@@ -113,7 +113,7 @@ func randomHandler(w http.ResponseWriter, r *http.Request) {
                 log.Fatal(fpErr)
             }
             
-            if strings.HasSuffix(r.URL.RequestURI(), "?nsfw=true") {
+            if strings.HasSuffix(r.URL.RequestURI(), "?nsfw") {
                 break
             }
             

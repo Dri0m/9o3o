@@ -125,11 +125,11 @@ func randomHandler(w http.ResponseWriter, r *http.Request) {
                 }
             }
             
-            vRow := votesDB.QueryRow(fmt.Sprintf(`
+            vRow := votesDB.QueryRow(`
                 SELECT working, broken
                 FROM   votes
-                WHERE  id = '%v'
-            `, entry.UUID))
+                WHERE  id = ?
+            `, entry.UUID)
             vErr := vRow.Scan(&entry.VotesWorking, &entry.VotesBroken)
             if vErr != sql.ErrNoRows && vErr != nil {
                 log.Fatal(vErr)
@@ -149,21 +149,21 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
     var entry Entry
     
     if id := r.URL.Path[5:]; verifyUUID(id) {
-        fpRow := flashpointDB.QueryRow(fmt.Sprintf(`
+        fpRow := flashpointDB.QueryRow(`
             SELECT id, title, launchCommand
             FROM   game
-            WHERE  id = '%v'
-        `, id))
+            WHERE  id = ?
+        `, id)
         fpErr := fpRow.Scan(&entry.UUID, &entry.Title, &entry.LaunchCommand)
         if fpErr != sql.ErrNoRows && fpErr != nil {
             log.Fatal(fpErr)
         }
         
-        vRow := votesDB.QueryRow(fmt.Sprintf(`
+        vRow := votesDB.QueryRow(`
             SELECT working, broken
             FROM   votes
-            WHERE  id = '%v'
-        `, id))
+            WHERE  id = ?
+        `, id)
         vErr := vRow.Scan(&entry.VotesWorking, &entry.VotesBroken)
         if vErr != sql.ErrNoRows && vErr != nil {
             log.Fatal(vErr)
@@ -179,7 +179,7 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 // Add new vote that the specified entry is working
 func workingHandler(w http.ResponseWriter, r *http.Request) {
     response := addVote(r.URL.Path[9:], `
-        INSERT INTO votes (id, working, broken) VALUES ('%v', 1, 0)
+        INSERT INTO votes (id, working, broken) VALUES (?, 1, 0)
         ON CONFLICT (id) DO UPDATE SET working = working + 1
     `)
     
@@ -190,7 +190,7 @@ func workingHandler(w http.ResponseWriter, r *http.Request) {
 // Add new vote that the specified entry is broken
 func brokenHandler(w http.ResponseWriter, r *http.Request) {
     response := addVote(r.URL.Path[8:], `
-        INSERT INTO votes (id, working, broken) VALUES ('%v', 0, 1)
+        INSERT INTO votes (id, working, broken) VALUES (?, 0, 1)
         ON CONFLICT (id) DO UPDATE SET broken = broken + 1
     `)
     
@@ -204,11 +204,11 @@ func addVote(id string, q string) string {
         return "UUID is not valid"
     }
     
-    row := flashpointDB.QueryRow(fmt.Sprintf(`
+    row := flashpointDB.QueryRow(`
         SELECT id
         FROM   game
-        WHERE  id = '%v'
-    `, id))
+        WHERE  id = ?
+    `, id)
     switch err := row.Scan(&id); err {
     case sql.ErrNoRows:
         return "UUID does not exist"
@@ -217,7 +217,7 @@ func addVote(id string, q string) string {
         log.Fatal(err)
     }
     
-    if _, err := votesDB.Exec(fmt.Sprintf(q, id)); err != nil {
+    if _, err := votesDB.Exec(q, id); err != nil {
         log.Fatal(err)
     }
     

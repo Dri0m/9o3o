@@ -9,12 +9,23 @@ a:link {
 a:hover {
     color: #fff;
 }
+#header {
+    margin: 10px 0 12px;
+}
 #title {
     font-weight: bold;
 }
-#player {
-    margin: 12px 0;
+#direct a {
+    display: inline-block;
+    margin-left: 10px;
 }
-#vote {
-    margin-top: 12px;
+#random a {
+    display: inline-block;
+    margin: 16px;
+}
+#footer {
+    margin: 16px 0 12px;
+}
+#rating div {
+    margin: 8px 0;
 }

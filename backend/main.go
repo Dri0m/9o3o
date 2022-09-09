@@ -1,215 +1,241 @@
 package main
 
 import (
-	"database/sql"
-	"encoding/json"
-	"errors"
-	"math/rand"
-	"net/http"
-	"strings"
-	"time"
-
-	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
+    "database/sql"
+    "fmt"
+    "encoding/json"
+    "errors"
+    "log"
+    "net/http"
+    "os"
+    "strings"
+    "time"
+    
+  _ "github.com/mattn/go-sqlite3"
+    "golang.org/x/exp/slices"
 )
 
-const dbName = "db.db"
-
-var goodTags = []string{"1", "2", "3", "4", "5", "6", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "54", "55", "56", "57", "58", "59", "61", "63", "64", "65", "67", "68", "69", "70", "71", "72", "73", "74", "75", "76", "411", "79", "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", "90", "91", "92", "93", "94", "95", "96", "97", "98", "99", "100", "101", "102", "103", "104", "106", "107", "108", "110", "111", "112", "113", "114", "115", "116", "117", "118", "119", "120", "121", "122", "123", "124", "125", "126", "127", "128", "129", "130", "160", "132", "133", "134", "135", "136", "137", "138", "139", "140", "141", "142", "143", "144", "145", "146", "147", "148", "149", "150", "152", "153", "154", "157", "158", "159", "161", "162", "163", "164", "165", "166", "167", "168", "169", "170", "171", "172", "174", "175", "176", "178", "179", "180", "181", "182", "183", "451", "186", "187", "191", "193", "195", "196", "197", "199", "200", "201", "203", "204", "205", "206", "207", "209", "210", "212", "213", "214", "215", "216", "217", "218", "219", "222", "223", "224", "227", "229", "230", "231", "232", "233", "234", "235", "236", "238", "239", "240", "241", "243", "244", "245", "246", "247", "248", "249", "250", "252", "253", "254", "255", "257", "260", "262", "263", "264", "265", "266", "268", "269", "270", "271", "272", "273", "274", "275", "276", "277", "278", "279", "280", "281", "282", "283", "284", "285", "286", "287", "289", "291", "292", "293", "294", "295", "296", "297", "298", "299", "300", "301", "302", "303", "304", "305", "306", "307", "308", "309", "310", "312", "313", "314", "315", "316", "317", "318", "319", "320", "321", "322", "323", "324", "325", "326", "327", "328", "776", "330", "331", "332", "333", "334", "336", "337", "338", "342", "344", "345", "346", "347", "911", "350", "351", "352", "354", "355", "356", "357", "358", "359", "361", "362", "363", "364", "365", "366", "367", "368", "369", "370", "371", "373", "374", "376", "377", "380", "381", "383", "385", "387", "388", "390", "391", "392", "394", "395", "396", "397", "398", "399", "400", "403", "406", "407", "409", "414", "419", "421", "423", "425", "426", "428", "430", "431", "432", "435", "436", "437", "440", "441", "603", "450", "449", "452", "453", "457", "458", "459", "461", "462", "471", "472", "475", "476", "479", "480", "482", "483", "488", "492", "493", "770", "497", "498", "499", "501", "502", "939", "507", "508", "511", "514", "755", "516", "787", "521", "522", "523", "530", "532", "541", "546", "548", "550", "557", "558", "570", "572", "579", "581", "586", "588", "591", "594", "595", "605", "610", "612", "613", "615", "616", "617", "618", "622", "625", "631", "633", "639", "642", "643", "644", "648", "650", "651", "652", "656", "657", "659", "661", "663", "664", "665", "667", "668", "670", "675", "676", "677", "684", "685", "687", "688", "693", "699", "700", "701", "703", "705", "706", "707", "708", "710", "717", "718", "722", "723", "729", "731", "732", "733", "734", "739", "741", "748", "751", "752", "753", "775", "762", "764", "765", "766", "767", "769", "774", "778", "779", "780", "781", "782", "783", "784", "785", "786", "788", "789", "790", "791", "792", "793", "795", "796", "800", "803", "805", "637", "811", "814", "822", "824", "825", "826", "827", "828", "829", "831", "836", "649", "62", "848", "854", "857", "860", "861", "863", "867", "868", "869", "870", "888", "891", "896", "897", "899", "900", "902", "904", "905", "914", "580", "576", "908", "109", "647", "621", "634", "597", "620", "604", "678", "673", "636", "697", "599", "702", "589", "614", "443", "679", "623", "694", "698", "606", "629", "628", "630", "608", "696", "624", "695", "456", "640", "653", "635", "601", "681", "916", "894", "917", "466", "727", "883", "871", "777", "819", "226", "919", "920", "602", "627", "921", "922", "923", "924", "925", "926", "927", "928", "929", "930", "931", "932", "933", "934", "935", "937", "938", "936", "379", "940", "941", "942", "943", "944", "945", "946", "884", "947", "948", "949", "950", "951", "953", "954", "534", "955", "958", "970", "972", "974", "975", "977", "980", "981", "983", "992", "999", "1000", "1001", "1002", "1003", "1004", "1005", "1006", "1007", "1008", "1009", "1010", "1011", "1012", "1013", "1014", "1015", "1016", "1017", "1018", "1019", "1020", "1021", "1022", "1023", "1024", "1025", "1026", "1028", "1029", "1030", "1032", "1033", "1034", "1036", "1037", "1038", "1039", "1040", "1041", "1042", "1044", "1045", "1047", "1048", "1049", "1050", "1051", "1052", "1053", "1055", "1057", "1058", "1059", "1060", "1061", "1062", "1063", "1065", "1067", "1068", "1069", "1070", "1071", "1072", "1073", "1074", "1075", "1076", "1077", "1078", "1079", "1080", "1081", "1082", "1083", "1084", "1085", "1086", "1087", "1088", "1089", "1090", "1091", "1092", "1093", "1095", "1096", "1097", "1098", "1099", "1100", "1101", "1102", "1103", "1104", "1105", "1106", "1107", "1108", "1109", "1110", "288", "1112", "1113", "1114", "1116", "1118", "1119", "1120", "1121", "1122", "1123", "1124", "1125", "1126", "1127", "1128", "1129", "1130", "1131", "1132", "1133", "1134", "1135", "1136", "1137", "1138", "1139", "1140", "1141", "1142", "1143", "1144", "1145", "1146", "1147", "1148", "1149", "1150", "1151", "1152", "1153", "1154", "1155", "1156", "1157", "1158", "1159", "1160", "1161", "1162", "1163", "1164", "1165", "1166", "1167", "1168", "1169", "1170", "1171", "1172", "1173", "1174", "1175", "1176", "1177", "1178", "1179", "1180", "1181", "1182", "1183", "1184", "1185", "1186", "1187", "1188", "1189", "1190", "1191", "1192", "1193", "1194", "1195", "1196", "1197", "1198", "1199", "1200", "1201", "1202", "1203", "1204", "1205", "1206", "1207", "1208", "1209", "1210", "1211", "1212", "1213", "1214", "1215", "1216", "1217", "1218", "1219", "1220", "1221", "1222", "1223", "1224", "1225", "1226", "1227", "1228", "1229", "1230", "1231", "1232", "1233", "1234", "1235", "1236", "1237", "1238", "1239", "1240", "1241", "1242", "1243", "1244", "1245", "1246", "1247", "1248", "1249", "1250", "1251", "1252", "1253", "1254", "1255", "1256", "1257", "1258", "1259", "1260", "1261", "1262", "1263", "1264", "1265", "1266", "1267", "1268", "1269", "1270", "1271", "1272", "1273", "1274", "1275", "1276", "1277", "1278", "1279", "1280", "1281", "1282", "1283", "1284", "1285", "1286", "1287", "1288", "1289", "1290", "1291", "1292", "1293", "1294", "1295", "1296", "1297", "1298", "1299", "1300", "1301", "1302", "1303", "1304", "1305", "1306", "1307", "1308", "1309", "1310", "1311", "1312", "1313", "1314", "1315", "1316", "1317", "1318", "1319", "1320", "1321", "1322", "1323", "1324", "1325", "1326", "1327", "1328", "1329", "1330", "1331", "1332", "1333", "1334", "1335", "1336", "1337", "1338", "1339", "1340", "1341", "1342", "1343", "1344", "1345", "1346", "1347", "1348", "1349", "1350", "1351", "1352", "1353", "1354", "1355", "1356", "1357", "1358", "1359", "1360", "1361", "1362", "1363", "1364", "1365", "1366", "1367", "1368", "1369", "1370", "1371", "1372", "1373", "1374", "1375", "1376", "1377", "1378", "1379", "1380", "1381", "1382", "1383", "1384", "1385", "1386", "1387", "1388", "1389", "1390", "1391", "1392", "1393", "1394", "1395", "1396", "1397", "1398", "1399", "1400", "1401", "1402", "1403", "1404", "1405", "1406", "1407", "1408", "1409", "1410", "1411", "1412", "1413", "1414", "1415", "1416", "1417", "1418", "1419", "1420", "1421", "1422", "1423", "1424"}
-
-type Rating struct {
-	gorm.Model
-	Name     string `gorm:"unique"`
-	Comments []Comment
+type Entry struct {
+    UUID          string `json:"uuid"`
+    Title         string `json:"title"`
+    LaunchCommand string `json:"launchCommand"`
+    VotesWorking  int    `json:"votesWorking"`
+    VotesBroken   int    `json:"votesBroken"`
 }
 
-type Comment struct {
-	gorm.Model
-	Message  string
-	GameID   uint
-	RatingID uint
-	Rating   Rating
-}
+var flashpointDB *sql.DB
+var errorFlashpointDB error
 
-type Game struct {
-	gorm.Model    `json:"-"`
-	UUID          string    `gorm:"unique" json:"uuid"`
-	Title         string    `json:"title"`
-	LaunchCommand string    `json:"launch_command"`
-	Comments      []Comment `json:"-"`
-}
+var votesDB *sql.DB
+var errorVotesDB error
 
-var l *logrus.Logger
-var db *gorm.DB
+var filter []string
 
 func main() {
-	var err error
-	db, err = gorm.Open(sqlite.Open(dbName), &gorm.Config{})
-	if err != nil {
-		panic("failed to connect database")
-	}
-
-	l = initLogger()
-
-	// Migrate the schema
-	db.AutoMigrate(&Rating{}, &Comment{}, &Game{})
-
-	initDB(db)
-
-	r := mux.NewRouter()
-	r.HandleFunc("/random", randomHandler).Methods("GET")
-	r.HandleFunc("/game/{uuid}/worky", workyHandler).Methods("POST")
-	r.HandleFunc("/game/{uuid}/not-worky", notWorkyHandler).Methods("POST")
-	http.Handle("/", r)
-
-	srv := &http.Server{
-		Handler: LogRequestHandler(r),
-		Addr:    "127.0.0.1:8985",
-		// Good practice: enforce timeouts for servers you create!
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
-	}
-
-	l.Fatal(srv.ListenAndServe())
+    // Import filters
+    filterRaw, err := os.ReadFile("filter.txt")
+    if err != nil {
+        log.Println("could not import filter.txt; NSFW entries will not be filtered")
+    } else {
+        log.Println("imported filter.txt")
+    }
+    
+    filter = strings.Split(string(filterRaw), "\r\n")
+    
+    // Connect Flashpoint database
+    flashpointDB, errorFlashpointDB = sql.Open("sqlite3", "flashpoint.sqlite")
+    if errorFlashpointDB != nil {
+        log.Fatal(errorFlashpointDB)
+    }
+    
+    defer flashpointDB.Close()
+    log.Println("connected to flashpoint.sqlite")
+    
+    // Create vote database if it doesn't exist, then connect
+    if _, err := os.Stat("votes.sqlite"); errors.Is(err, os.ErrNotExist) {
+        os.Create("votes.sqlite")
+        log.Println("created votes.sqlite")
+    }
+    
+    votesDB, errorVotesDB = sql.Open("sqlite3", "votes.sqlite")
+    if errorVotesDB != nil {
+        log.Fatal(errorVotesDB)
+    }
+    
+    defer votesDB.Close()
+    log.Println("connected to votes.sqlite")
+    
+    // Create vote table if it doesn't exist
+    if _, err := votesDB.Exec(`
+        CREATE TABLE IF NOT EXISTS votes (
+            id      VARCHAR(36) PRIMARY KEY,
+            working INTEGER,
+            broken  INTEGER
+        )
+    `); err != nil {
+        log.Fatal(err)
+    }
+        
+    // Set up and start server
+    http.HandleFunc("/random",   randomHandler )
+    http.HandleFunc("/get/",     getHandler    )
+    http.HandleFunc("/working/", workingHandler)
+    http.HandleFunc("/broken/",  brokenHandler )
+    
+    server := &http.Server{
+        Addr: "127.0.0.1:8985",
+        WriteTimeout: 15 * time.Second,
+        ReadTimeout:  15 * time.Second,
+    }
+    
+    log.Printf("server started at %v\n", server.Addr)
+    log.Fatal(server.ListenAndServe())
 }
 
-func workyHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	uuid := vars["uuid"]
-
-	if err := addComment(uuid, "works", ""); err != nil {
-		l.Error(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-}
-
-func notWorkyHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	uuid := vars["uuid"]
-
-	if err := addComment(uuid, "broken", ""); err != nil {
-		l.Error(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-}
-
+// Return JSON-formatted info about a random Flashpoint entry
 func randomHandler(w http.ResponseWriter, r *http.Request) {
-	var count int64
-	if err := db.Model(&Game{}).Count(&count).Error; err != nil {
-		l.Panic(err)
-	}
-
-	selected := rand.Intn(int(count)) + 1
-
-	var gameska Game
-	if err := db.First(&gameska, selected).Error; err != nil {
-		l.Panic(err)
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(&gameska)
+    var entry Entry
+    
+    // If the NSFW filter is active, "re-roll" until a non-NSFW entry is picked
+    ParentLoop:
+        for {
+            var tags string
+            
+            fpRow := flashpointDB.QueryRow(`
+                SELECT   id, title, launchCommand, tagsStr 
+                FROM     game 
+                WHERE    launchCommand LIKE '%.swf'
+                ORDER BY random()
+                LIMIT    1
+            `)
+            fpErr := fpRow.Scan(&entry.UUID, &entry.Title, &entry.LaunchCommand, &tags)
+            if fpErr != sql.ErrNoRows && fpErr != nil {
+                log.Fatal(fpErr)
+            }
+            
+            if strings.HasSuffix(r.URL.RequestURI(), "?nsfw") {
+                break
+            }
+            
+            tagArray := strings.Split(tags, "; ")
+            
+            for _, v := range tagArray {
+                if slices.Contains(filter, v) {
+                    continue ParentLoop
+                }
+            }
+            
+            vRow := votesDB.QueryRow(`
+                SELECT working, broken
+                FROM   votes
+                WHERE  id = ?
+            `, entry.UUID)
+            vErr := vRow.Scan(&entry.VotesWorking, &entry.VotesBroken)
+            if vErr != sql.ErrNoRows && vErr != nil {
+                log.Fatal(vErr)
+            }
+            
+            break
+        }
+    
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(entry)
+    
+    log.Printf("served %v (%v)\n", r.URL.RequestURI(), entry.UUID)
 }
 
-func addComment(uuid, rating, message string) error {
-	var gameska Game
-	if err := db.Where(&Game{UUID: uuid}).First(&gameska).Error; err != nil {
-		return err
-	}
-
-	var ratingosek Rating
-	if err := db.Where(&Rating{Name: rating}).First(&ratingosek).Error; err != nil {
-		return err
-	}
-
-	gameska.Comments = append(gameska.Comments, Comment{Rating: ratingosek, Message: message})
-	if err := db.Save(&gameska).Error; err != nil {
-		return err
-	}
-
-	return nil
+// Return JSON-formatted info about the specified entry
+func getHandler(w http.ResponseWriter, r *http.Request) {
+    var entry Entry
+    
+    if id := r.URL.Path[5:]; verifyUUID(id) {
+        fpRow := flashpointDB.QueryRow(`
+            SELECT id, title, launchCommand
+            FROM   game
+            WHERE  id = ?
+        `, id)
+        fpErr := fpRow.Scan(&entry.UUID, &entry.Title, &entry.LaunchCommand)
+        if fpErr != sql.ErrNoRows && fpErr != nil {
+            log.Fatal(fpErr)
+        }
+        
+        vRow := votesDB.QueryRow(`
+            SELECT working, broken
+            FROM   votes
+            WHERE  id = ?
+        `, id)
+        vErr := vRow.Scan(&entry.VotesWorking, &entry.VotesBroken)
+        if vErr != sql.ErrNoRows && vErr != nil {
+            log.Fatal(vErr)
+        }
+    }
+    
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(entry)
+    
+    log.Printf("served %v\n", r.URL.RequestURI())
 }
 
-func initDB(db *gorm.DB) {
-	isDone := true
-	var gameska Game
-	if err := db.First(&gameska).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			isDone = false
-		} else {
-			l.Panic(err)
-		}
-	}
+// Add new vote that the specified entry is working
+func workingHandler(w http.ResponseWriter, r *http.Request) {
+    response := addVote(r.URL.Path[9:], `
+        INSERT INTO votes (id, working, broken) VALUES (?, 1, 0)
+        ON CONFLICT (id) DO UPDATE SET working = working + 1
+    `)
+    
+    fmt.Fprint(w, response)
+    log.Printf("received %v (%v)\n", r.URL.RequestURI(), response)
+}
 
-	if isDone {
-		l.Info("master db already ingested")
-		return
-	}
+// Add new vote that the specified entry is broken
+func brokenHandler(w http.ResponseWriter, r *http.Request) {
+    response := addVote(r.URL.Path[8:], `
+        INSERT INTO votes (id, working, broken) VALUES (?, 0, 1)
+        ON CONFLICT (id) DO UPDATE SET broken = broken + 1
+    `)
+    
+    fmt.Fprint(w, response)
+    log.Printf("received %v (%v)\n", r.URL.RequestURI(), response)
+}
 
-	fdb, err := sql.Open("sqlite3", "flashpoint.sqlite?mode=ro")
-	if err != nil {
-		l.Panic(err)
-	}
+// Update vote database with new vote
+func addVote(id string, q string) string {
+    if !verifyUUID(id) {
+        return "UUID is not valid"
+    }
+    
+    row := flashpointDB.QueryRow(`
+        SELECT id
+        FROM   game
+        WHERE  id = ?
+    `, id)
+    switch err := row.Scan(&id); err {
+    case sql.ErrNoRows:
+        return "UUID does not exist"
+    case nil:
+    default:
+        log.Fatal(err)
+    }
+    
+    if _, err := votesDB.Exec(q, id); err != nil {
+        log.Fatal(err)
+    }
+    
+    return "Success"
+}
 
-	l.Debug("reading masterdb")
-	rows, err := fdb.Query(`
-		SELECT id, title, launchCommand, GROUP_CONCAT(game_tags_tag.tagId) as tagIds
-		FROM game
-		JOIN game_tags_tag ON game.id=game_tags_tag.gameId
-		WHERE game.platform='Flash'
-		AND game.launchCommand LIKE '%.swf'
-		GROUP BY game.id`)
-	if err != nil {
-		l.Panic(err)
-	}
-
-	games := make([]*Game, 0, 100000)
-
-	for rows.Next() {
-		g := &Game{}
-		var tagIds string
-		err := rows.Scan(
-			&g.UUID, &g.Title, &g.LaunchCommand, &tagIds)
-		if err != nil {
-			l.Panic(err)
-		}
-
-		s := strings.Split(tagIds, ",")
-
-		isBad := false
-		for _, candidateID := range s {
-			found := false
-			for _, tagID := range goodTags {
-				if candidateID == tagID {
-					found = true
-					break
-				}
-			}
-			if !found {
-				isBad = true
-				break
-			}
-		}
-		if !isBad {
-			games = append(games, g)
-		} else {
-			l.Debugf("excluding game %s because it has bad tags", g.UUID)
-		}
-	}
-
-	l.Debug("inserting games to the db")
-	db.CreateInBatches(games, 100)
-
-	l.Debug("inserting ratings")
-	db.Create(&Rating{Name: "works"})
-	db.Create(&Rating{Name: "buggy"})
-	db.Create(&Rating{Name: "broken"})
+// Verify that the passed UUID is the correct length and isn't an SQL injection
+func verifyUUID (s string) bool {
+    if len(s) != 36 {
+        return false
+    }
+    
+    safeChars := "abcdefghijklmnopqrstuvwxyz0123456789-"
+    for _, v := range s {
+        if !strings.Contains(safeChars, string(v)) {
+            return false
+        }
+    }
+    
+    return true
 }

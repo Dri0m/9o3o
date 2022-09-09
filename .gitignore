@@ -1,5 +1,6 @@
 /backend/backend.exe
-/backend/db.db
+/backend/filter.txt
 /backend/flashpoint.sqlite
 /backend/flashpoint.sqlite-shm
 /backend/flashpoint.sqlite-wal
+/backend/votes.sqlite

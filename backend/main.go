@@ -57,10 +57,11 @@ func main() {
         log.Println("created votes.sqlite")
     }
     
-    votesDB, errorVotesDB = sql.Open("sqlite3", "votes.sqlite")
+    votesDB, errorVotesDB = sql.Open("sqlite3", "votes.sqlite?cache=shared&mode=rwc")
     if errorVotesDB != nil {
         log.Fatal(errorVotesDB)
     }
+    votesDB.SetMaxOpenConns(1)
     
     defer votesDB.Close()
     log.Println("connected to votes.sqlite")

@@ -153,16 +153,12 @@ ParentLoop:
 			return
 		}
 
-		log.Info().Str("uuid", uuid).Msg("got random")
-
 		g, err = getMetadata(uuid)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to obtain metadata from database")
 			write500(w)
 			return
 		}
-
-		log.Printf("%+v", g)
 
 		// we want a NSFW game so stop
 		if r.URL.Query().Has("nsfw") {

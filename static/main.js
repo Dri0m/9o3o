@@ -68,7 +68,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return await originalFetch(resource, options);
             
             // Otherwise, fetch the requested resource from htdocs instead
-            return await originalFetch(htdocs + resourceURL.hostname + resourceURL.pathname, options);
+            let response = await originalFetch(htdocs + resourceURL.hostname + resourceURL.pathname, options);
+            Object.defineProperty(response, "url", { value: resourceURL.href });
+            return response;
         }
         
         // Load entry from original URL

@@ -1,8 +1,8 @@
 // Global variable that will contain the entry's UUID
 let uuid = '';
 
-// const apiURL = "https://api.ooooooooo.ooo"
-const apiURL = "http://127.0.0.1:8985"
+const apiURL = "https://api.ooooooooo.ooo"
+//const apiURL = "http://127.0.0.1:8985"
 
 // URL of Flashpoint's htdocs folder
 const htdocs = 'https://ooooooooo.ooo/htdocs/';

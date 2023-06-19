@@ -1,16 +1,19 @@
 // Global variable that will contain the entry's UUID
 let uuid = '';
 
+// const apiURL = "https://api.ooooooooo.ooo"
+const apiURL = "http://127.0.0.1:8985"
+
 // URL of Flashpoint's htdocs folder
 const htdocs = 'https://ooooooooo.ooo/htdocs/';
 // URL to fetch a random entry from
-const random = 'https://api.ooooooooo.ooo/random';
+const random = `${apiURL}/random`;
 // URL to fetch a specific entry from
-const get = (uuid) => `https://api.ooooooooo.ooo/get/${uuid}`;
+const get = (uuid) => `${apiURL}/get/${uuid}`;
 // URL to tell the site that the entry is working
-const working = () => `https://api.ooooooooo.ooo/working/${uuid}`;
+const working = () => `${apiURL}/working/${uuid}`;
 // URL to tell the site that the entry is broken
-const broken = () => `https://api.ooooooooo.ooo/broken/${uuid}`;
+const broken = () => `${apiURL}/broken/${uuid}`;
 
 // Copy of the unaltered fetch() method
 const originalFetch = window.fetch;

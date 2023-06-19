@@ -17,21 +17,36 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-type Entry struct {
-	UUID          string `json:"uuid"`
-	Title         string `json:"title"`
-	LaunchCommand string `json:"launchCommand"`
-	VotesWorking  int    `json:"votesWorking"`
-	VotesBroken   int    `json:"votesBroken"`
+type Game struct {
+	UUID                string    `json:"uuid,omitempty"`
+	Title               *string   `json:"title,omitempty"`
+	AlternateTitles     *string   `json:"alternateTitles,omitempty"`
+	Series              *string   `json:"series,omitempty"`
+	Developer           *string   `json:"developer,omitempty"`
+	Publisher           *string   `json:"publisher,omitempty"`
+	Platform            *string   `json:"platform,omitempty"`
+	Extreme             *string   `json:"extreme,omitempty"`
+	PlayMode            *string   `json:"playMode,omitempty"`
+	Status              *string   `json:"status,omitempty"`
+	GameNotes           *string   `json:"gameNotes,omitempty"`
+	Source              *string   `json:"source,omitempty"`
+	LaunchCommand       *string   `json:"launchCommand,omitempty"`
+	ReleaseDate         *string   `json:"releaseDate,omitempty"`
+	Version             *string   `json:"version,omitempty"`
+	OriginalDescription *string   `json:"originalDescription,omitempty"`
+	Languages           *string   `json:"languages,omitempty"`
+	Library             *string   `json:"library,omitempty"`
+	Tags                *string   `json:"tags,omitempty"`
+	DateAdded           time.Time `json:"dateAdded"`
+	DateModified        time.Time `json:"dateModified"`
+	VotesWorking        int       `json:"votesWorking"`
+	VotesBroken         int       `json:"votesBroken"`
 }
 
 const InternalServerError = "internal server error"
 
 var flashpointDB *sql.DB
-var errorFlashpointDB error
-
 var votesDB *sql.DB
-var errorVotesDB error
 
 var filter = make([]string, 0)
 
@@ -117,26 +132,37 @@ func write500(w http.ResponseWriter) {
 
 // Return JSON-formatted info about a random Flashpoint entry
 func randomHandler(w http.ResponseWriter, r *http.Request) {
-	var entry Entry
+	var g *Game
 
 	// If the NSFW filter is active, "re-roll" until a non-NSFW entry is picked
 ParentLoop:
 	for {
-		var tags string
+		var uuid string
 
 		fpRow := flashpointDB.QueryRow(`
-                SELECT   id, title, launchCommand, tagsStr 
+                SELECT   id
                 FROM     game 
                 WHERE    launchCommand LIKE '%.swf'
                 ORDER BY random()
                 LIMIT    1
             `)
-		err := fpRow.Scan(&entry.UUID, &entry.Title, &entry.LaunchCommand, &tags)
-		if err != sql.ErrNoRows && err != nil {
+		err := fpRow.Scan(&uuid)
+		if err != nil {
 			log.Error().Err(err).Msg("failed to obtain random game from database")
 			write500(w)
 			return
 		}
+
+		log.Info().Str("uuid", uuid).Msg("got random")
+
+		g, err = getMetadata(uuid)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to obtain metadata from database")
+			write500(w)
+			return
+		}
+
+		log.Printf("%+v", g)
 
 		// we want a NSFW game so stop
 		if r.URL.Query().Has("nsfw") {
@@ -144,7 +170,7 @@ ParentLoop:
 		}
 
 		// otherwise check if the game is NSFW or not
-		tagArray := strings.Split(tags, ";")
+		tagArray := strings.Split(*g.Tags, ";")
 
 		for _, v := range tagArray {
 			v := strings.TrimSpace(v)
@@ -157,8 +183,8 @@ ParentLoop:
                 SELECT working, broken
                 FROM   votes
                 WHERE  id = ?
-            `, entry.UUID)
-		err = vRow.Scan(&entry.VotesWorking, &entry.VotesBroken)
+            `, g.UUID)
+		err = vRow.Scan(&g.VotesWorking, &g.VotesBroken)
 		if err != sql.ErrNoRows && err != nil {
 			log.Error().Err(err).Msg("failed to obtain votes from database")
 			write500(w)
@@ -169,32 +195,28 @@ ParentLoop:
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	err := json.NewEncoder(w).Encode(entry)
+	err := json.NewEncoder(w).Encode(g)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to marshal response to the user")
 		write500(w)
 		return
 	}
 
-	log.Debug().Msgf("served %v (%v)", r.URL.RequestURI(), entry.UUID)
+	log.Debug().Msgf("served %v (%v)", r.URL.RequestURI(), g.UUID)
 }
 
 // Return JSON-formatted info about the specified entry
 func getHandler(w http.ResponseWriter, r *http.Request) {
-	var entry Entry
-
 	uuid := r.URL.Path[5:]
 	ok := verifyUUID(uuid)
 
+	var g *Game
+	var err error
+
 	if ok {
-		fpRow := flashpointDB.QueryRow(`
-            SELECT id, title, launchCommand
-            FROM   game
-            WHERE  id = ?
-        `, uuid)
-		err := fpRow.Scan(&entry.UUID, &entry.Title, &entry.LaunchCommand)
+		g, err = getMetadata(uuid)
 		if err != sql.ErrNoRows && err != nil {
-			log.Error().Err(err).Msg("failed to obtain random game from database")
+			log.Error().Err(err).Str("uuid", uuid).Msg("failed to obtain game from database")
 			write500(w)
 			return
 		}
@@ -204,7 +226,7 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
             FROM   votes
             WHERE  id = ?
         `, uuid)
-		err = vRow.Scan(&entry.VotesWorking, &entry.VotesBroken)
+		err = vRow.Scan(&g.VotesWorking, &g.VotesBroken)
 		if err != sql.ErrNoRows && err != nil {
 			log.Error().Err(err).Msg("failed to obtain votes from database")
 			write500(w)
@@ -213,7 +235,7 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	err := json.NewEncoder(w).Encode(entry)
+	err = json.NewEncoder(w).Encode(g)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to marshal response to the user")
 		write500(w)
@@ -306,4 +328,33 @@ func verifyUUID(s string) bool {
 	}
 
 	return true
+}
+
+func getMetadata(uuid string) (*Game, error) {
+	row := flashpointDB.QueryRow(`
+		SELECT id, title, alternateTitles, series, developer, publisher, platform, extreme, playMode, status, notes,
+		       source, launchCommand, releaseDate, version, originalDescription, language, library, tagsStr, dateAdded, dateModified
+		FROM game
+		WHERE id=?`, uuid)
+
+	g := Game{}
+
+	var isExtreme bool
+
+	err := row.Scan(
+		&g.UUID, &g.Title, &g.AlternateTitles, &g.Series, &g.Developer, &g.Publisher, &g.Platform,
+		&isExtreme, &g.PlayMode, &g.Status, &g.GameNotes, &g.Source, &g.LaunchCommand, &g.ReleaseDate,
+		&g.Version, &g.OriginalDescription, &g.Languages, &g.Library, &g.Tags, &g.DateAdded, &g.DateModified)
+	if err != nil {
+		return nil, err
+	}
+	if isExtreme {
+		yes := "Yes"
+		g.Extreme = &yes
+	} else {
+		no := "No"
+		g.Extreme = &no
+	}
+
+	return &g, nil
 }

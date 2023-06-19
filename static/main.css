@@ -3,29 +3,60 @@ body {
     color: #fff;
     text-align: center;
 }
+
 a:link {
     color: #ccc;
 }
+
 a:hover {
     color: #fff;
 }
+
 #header {
     margin: 10px 0 12px;
 }
+
 #title {
     font-weight: bold;
 }
+
 #direct a {
     display: inline-block;
     margin-left: 10px;
 }
+
 #random a {
     display: inline-block;
     margin: 16px;
 }
+
 #footer {
     margin: 16px 0 12px;
 }
+
 #rating div {
     margin: 8px 0;
+}
+
+table {
+    text-align: left;
+    max-width: 800px;
+    margin: auto; /* Centers the table horizontally */
+    word-wrap: break-word; /* Forces the text to wrap */
+    table-layout: fixed; /* Uses the fixed layout algorithm */
+}
+
+table td:first-child { /* Selects the first column of the table */
+    text-align: left;
+    max-width: 200px;
+    word-wrap: break-word;
+}
+
+table, th, td {
+    border: 1px solid white;
+    border-collapse: collapse;
+}
+
+#metadata-toggle {
+    text-decoration: underline;
 }

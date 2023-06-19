@@ -1,35 +1,133 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>9o3o</title>
-        <link rel="stylesheet" href="main.css">
-        <script src="main.js"></script>
-        <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
-    </head>
-    <body>
-        <div id="header">
-            <span id="title"></span>
-            <span id="direct" hidden>
+<html lang="en">
+<head>
+    <title>9o3o</title>
+    <link rel="stylesheet" href="main.css">
+    <script src="main.js"></script>
+    <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+</head>
+<body>
+<div id="header">
+    <span id="title"></span>
+    <span id="direct" hidden>
                 <a href="">Direct link</a>
             </span>
-        </div>
-        <div id="player"></div>
-        <div id="random">
-            <a href="./">Random (filtered)</a>
-            <a href="/static/browse">Browse Games</a>
-            <a href="./?nsfw">Random (unfiltered)</a>
-        </div>
-        Ruffle is still in development and not everything will run properly at this time.
-        <div id="footer">
-            <div id="rating">
-                <b>Compatibility rating:</b> <span></span>
-            </div>
-            <div id="vote">
-                <span>Is this entry working? <a href="javascript:vote(working)">[Yes]</a> or <a href="javascript:vote(broken)">[No]</a></span>
-                <span hidden>Thanks for the feedback.</span>
-            </div>
-            <br>
-            <a href="faq.html">FAQ</a>
-        </div>
-    </body>
+</div>
+<div id="player"></div>
+<div id="random">
+    <a href="./">Random (filtered)</a>
+    <a href="/static/browse">Browse Games</a>
+    <a href="./?nsfw">Random (unfiltered)</a>
+    <br>
+    <span id="metadata-toggle" onclick="showMetadata()">Open metadata table</span>
+</div>
+
+<br>
+
+<table id="metadata">
+    <tbody>
+    <tr>
+        <td>UUID</td>
+        <td id="metadata-UUID">null</td>
+    </tr>
+    <tr>
+        <td>Title</td>
+        <td id="metadata-Title">null</td>
+    </tr>
+    <tr>
+        <td>Alternate Titles</td>
+        <td id="metadata-AlternateTitles">null</td>
+    </tr>
+    <tr>
+        <td>Series</td>
+        <td id="metadata-Series">null</td>
+    </tr>
+    <tr>
+        <td>Developer</td>
+        <td id="metadata-Developer">null</td>
+    </tr>
+    <tr>
+        <td>Publisher</td>
+        <td id="metadata-Publisher">null</td>
+    </tr>
+    <tr>
+        <td>Platform</td>
+        <td id="metadata-Platform">null</td>
+    </tr>
+    <tr>
+        <td>Extreme</td>
+        <td id="metadata-Extreme">null</td>
+    </tr>
+    <tr>
+        <td>Play Mode</td>
+        <td id="metadata-PlayMode">null</td>
+    </tr>
+    <tr>
+        <td>Status</td>
+        <td id="metadata-Status">null</td>
+    </tr>
+    <tr>
+        <td>Game Notes</td>
+        <td id="metadata-GameNotes">null</td>
+    </tr>
+    <tr>
+        <td>Source</td>
+        <td id="metadata-Source">null</td>
+    </tr>
+    <tr>
+        <td>Launch Command</td>
+        <td id="metadata-LaunchCommand">null</td>
+    </tr>
+    <tr>
+        <td>ReleaseDate</td>
+        <td id="metadata-ReleaseDate">null</td>
+    </tr>
+    <tr>
+        <td>Version</td>
+        <td id="metadata-Version">null</td>
+    </tr>
+    <tr>
+        <td>Original Description</td>
+        <td id="metadata-OriginalDescription">null</td>
+    </tr>
+    <tr>
+        <td>Languages</td>
+        <td id="metadata-Languages">null</td>
+    </tr>
+    <tr>
+        <td>Library</td>
+        <td id="metadata-Library">null</td>
+    </tr>
+    <tr>
+        <td>Tags</td>
+        <td id="metadata-Tags">null</td>
+    </tr>
+    <tr>
+        <td>Date Added</td>
+        <td id="metadata-DateAdded">null</td>
+    </tr>
+    <tr>
+        <td>Date Modified</td>
+        <td id="metadata-DateModified">null</td>
+    </tr>
+    </tbody>
+</table>
+
+<br>
+
+Ruffle is still in development and not everything will run properly at this time.
+
+<div id="footer">
+    <div id="rating">
+        <b>Compatibility rating:</b> <span></span>
+    </div>
+    <div id="vote">
+        <span>Is this entry working? <a href="javascript:vote(working)">[Yes]</a> or <a href="javascript:vote(broken)">[No]</a></span>
+        <span hidden>Thanks for the feedback.</span>
+    </div>
+    <br>
+    <a href="faq.html">FAQ</a>
+</div>
+
+</body>
 </html>

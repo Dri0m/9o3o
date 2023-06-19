@@ -1,8 +1,8 @@
 // Global variable that will contain the entry's UUID
 let uuid = '';
 
-const apiURL = "https://api.ooooooooo.ooo"
-//const apiURL = "http://127.0.0.1:8985"
+//const apiURL = "https://api.ooooooooo.ooo"
+const apiURL = "http://127.0.0.1:8985"
 
 // URL of Flashpoint's htdocs folder
 const htdocs = 'https://ooooooooo.ooo/htdocs/';
@@ -20,6 +20,8 @@ const originalFetch = window.fetch;
 
 // To-do: figure out why 'load' event never fires
 document.addEventListener('DOMContentLoaded', () => {
+    document.querySelector('#metadata').hidden = true;
+
     let queryString = location.search.substring(1),
         api = '';
     
@@ -86,7 +88,29 @@ document.addEventListener('DOMContentLoaded', () => {
         // Display direct link to entry
         document.querySelector('#direct a').href = './?' + data.uuid;
         document.querySelector('#direct').hidden = false;
-        
+
+        document.querySelector('#metadata-UUID').textContent = data.uuid;
+        document.querySelector('#metadata-Title').textContent = data.title;
+        document.querySelector('#metadata-AlternateTitles').textContent = data.alternateTitles;
+        document.querySelector('#metadata-Series').textContent = data.series;
+        document.querySelector('#metadata-Developer').textContent = data.developer;
+        document.querySelector('#metadata-Publisher').textContent = data.publisher;
+        document.querySelector('#metadata-Platform').textContent = data.platform;
+        document.querySelector('#metadata-Extreme').textContent = data.extreme;
+        document.querySelector('#metadata-PlayMode').textContent = data.playMode;
+        document.querySelector('#metadata-Status').textContent = data.status;
+        document.querySelector('#metadata-GameNotes').textContent = data.gameNotes;
+        document.querySelector('#metadata-Source').textContent = data.source;
+        document.querySelector('#metadata-LaunchCommand').textContent = data.launchCommand;
+        document.querySelector('#metadata-ReleaseDate').textContent = data.releaseDate;
+        document.querySelector('#metadata-Version').textContent = data.version;
+        document.querySelector('#metadata-OriginalDescription').textContent = data.originalDescription;
+        document.querySelector('#metadata-Languages').textContent = data.languages;
+        document.querySelector('#metadata-Library').textContent = data.library;
+        document.querySelector('#metadata-Tags').textContent = data.tags;
+        document.querySelector('#metadata-DateAdded').textContent = data.dateAdded;
+        document.querySelector('#metadata-DateModified').textContent = data.dateModified;
+
         // Display compatibility rating of entry
         if (data.votesWorking + data.votesBroken > 0) {
             let totalVotes = data.votesWorking + data.votesBroken,
@@ -120,4 +144,15 @@ function vote(callback) {
     // Replace voting buttons with a thank you message
     document.querySelector('#vote span:first-child').hidden = true;
     document.querySelector('#vote span:last-child' ).hidden = false;
+}
+
+function showMetadata() {
+    let status = document.querySelector('#metadata').hidden;
+    if (status === false) {
+        document.querySelector('#metadata').hidden = true;
+        document.querySelector('#metadata-toggle').textContent = "Open metadata table"
+    } else {
+        document.querySelector('#metadata').hidden = false;
+        document.querySelector('#metadata-toggle').textContent = "Close metadata table"
+    }
 }

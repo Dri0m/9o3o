@@ -73,11 +73,11 @@ fetch(request).then(async response => {
     document.querySelector('.info').href = 'https://flashpointproject.github.io/flashpoint-database/search/#' + entry.uuid;
     document.querySelector('.link').href = './?' + entry.uuid;
     
-    let total = entry.votesWorking + entry.votesBroken,
-        fraction = total > 0 ? (entry.votesWorking / total) : 0;
-    
-    document.querySelector('.fraction').textContent = Math.round(fraction * 100) / 10;
-    document.querySelector('.total').textContent = total;
+    let total = entry.votesWorking + entry.votesBroken;
+    if (total > 0) {
+        document.querySelector('.fraction').textContent = (Math.round((entry.votesWorking / total) * 100) / 10) + '/10';
+        document.querySelector('.total').textContent = total;
+    }
     
     document.querySelectorAll('.button').forEach(elem => elem.addEventListener('click', () => {
         _fetch(`${oooo}/${elem.classList[1]}?id=${entry.uuid}`, { method: 'POST' }).then(() => {

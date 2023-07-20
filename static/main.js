@@ -117,7 +117,7 @@ async function playEntry(entry, player) {
         };
         
         if (entry.zipped) {
-            let redirectedFile = gameZip.file('content/' + info.base.hostname + info.base.pathname);
+            let redirectedFile = gameZip.file(decodeURIComponent('content/' + info.base.hostname + info.base.pathname));
             if (redirectedFile != null) {
                 info.url = URL.createObjectURL(await redirectedFile.async('blob'));
                 return info;

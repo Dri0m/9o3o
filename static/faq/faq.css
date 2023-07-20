@@ -1,0 +1,22 @@
+body {
+    width: 640px;
+    color: #fff;
+    font-family: "Verdana", sans-serif;
+    background-color: #1b1b1c;
+    margin: 0 auto;
+}
+a:link {
+    color: #bbf;
+    font-weight: bold;
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+.question {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 16px 0 8px;
+    display: block;
+}

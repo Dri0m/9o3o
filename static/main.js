@@ -1,158 +1,155 @@
-// Global variable that will contain the entry's UUID
-let uuid = '';
+const oooo = 'http://127.0.0.1:8985';
+const fpdb = 'https://db-api.unstable.life';
 
-const apiURL = "https://api.ooooooooo.ooo"
-//const apiURL = "http://127.0.0.1:8985"
+const _fetch = window.fetch;
+const _createElement = document.createElement;
 
-// URL of Flashpoint's htdocs folder
-const htdocs = 'https://ooooooooo.ooo/htdocs/';
-// URL to fetch a random entry from
-const random = `${apiURL}/random`;
-// URL to fetch a specific entry from
-const get = (uuid) => `${apiURL}/get/${uuid}`;
-// URL to tell the site that the entry is working
-const working = () => `${apiURL}/working/${uuid}`;
-// URL to tell the site that the entry is broken
-const broken = () => `${apiURL}/broken/${uuid}`;
+const players = [
+    {
+        source: 'https://unpkg.com/@ruffle-rs/ruffle',
+        platforms: [ 'Flash' ],
+        extensions: [ '.swf' ],
+        
+        initialize(launchCommand) {
+            let player = window.RufflePlayer.newest().createPlayer();
+            window.RufflePlayer.config.base = launchCommand.substring(0, launchCommand.lastIndexOf('/'));
+            
+            document.querySelector('.player').append(player);
+            player.load(launchCommand);
+            
+            player.addEventListener('loadedmetadata', () => {
+                if (player.metadata.width > 1 && player.metadata.height > 1) {
+                    player.style.width  = player.metadata.width  + 'px';
+                    player.style.height = player.metadata.height + 'px';
+                }
+            });
+        }
+    },
+    {
+        source: 'https://create3000.github.io/code/x_ite/latest/x_ite.min.js',
+        platforms: [ 'VRML', 'X3D' ],
+        extensions: [ '.wrl', '.wrl.gz', '.x3d' ],
+        
+        initialize(launchCommand) {
+            let player = X3D.createBrowser();
+            player.style.width = '900px';
+            player.style.height = '600px';
+            player.browser.baseURL = launchCommand.substring(0, launchCommand.lastIndexOf('/'));
+            
+            document.querySelector('.player').append(player);
+            player.browser.loadURL(new X3D.MFString(launchCommand));
+        }
+    }
+];
 
-// Copy of the unaltered fetch() method
-const originalFetch = window.fetch;
+let request = oooo + '/get';
+if (location.search != '')
+    request += '?id=' + location.search.substring(1);
+else if (localStorage.getItem('filter') != 'false')
+    request += '?filter=true';
 
-// To-do: figure out why 'load' event never fires
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelector('#metadata').hidden = true;
-
-    let queryString = location.search.substring(1),
-        api = '';
+fetch(request).then(async response => {
+    let entry;
+    try {
+        entry = await response.json();
+    } catch {
+        document.querySelector('.header').textContent = 'The specified entry is invalid.';
+        document.querySelectorAll('.content *:not(.header)').forEach(elem => elem.style.display = 'none');
+        return;
+    }
     
-    // Use unfiltered random API if query string is '?nsfw'
-    if (queryString == 'nsfw')
-        api = random + '?nsfw';
-    // Use direct API if query string otherwise exists
-    else if (queryString.length > 0)
-        api = get(queryString);
-    // Usr filtered random API if query string does not exist
-    else
-        api = random;
+    document.title = entry.title + ' - 9o3o';
+    document.querySelector('.header').textContent = entry.title;
     
-    // Get entry data
-    fetch(api)
-    // Get JSON representation of that data
-    .then((response) => response.json())
-    // Do the things
-    .then((data) => {
-        // Display error if entry does not exist
-        if (data.uuid.length == 0) {
-            document.body.innerHTML = 'The specified entry does not exist!';
-            return;
-        }
-        // Display error if entry is not a Flash game
-        if (!data.launchCommand.toLowerCase().endsWith('.swf')) {
-            document.body.innerHTML = 'The specified entry is not a Flash game!';
-            return;
-        }
-        
-        // Fill in the UUID for use by the voting function
-        uuid = data.uuid;
-        
-        // Create Ruffle instance and add it to DOM
-        const player = window.RufflePlayer.newest().createPlayer();
-        document.querySelector('#player').append(player);
-        
-        // Set base path for all resources to that of main SWF
-        window.RufflePlayer.config.base = data.launchCommand.substring(0, data.launchCommand.lastIndexOf('/'));
-        
-        // Add redirection to fetch() method
-        // Concept adapted from https://github.com/TBubba/ruffle-redirect-poc
-        window.fetch = async (resource, options) => {
-            // Get URL object for requested resource
-            let resourceURL = new URL(resource instanceof Request ? resource.url : resource);
-            
-            // Don't redirect if the file is a Ruffle dependency or part of a browser extension
-            if (resourceURL.hostname == 'unpkg.com' || !resourceURL.protocol.startsWith('http'))
-                return await originalFetch(resource, options);
-            
-            // Otherwise, fetch the requested resource from htdocs instead
-            let response = await originalFetch(htdocs + resourceURL.hostname + resourceURL.pathname, options);
-            Object.defineProperty(response, "url", { value: resourceURL.href });
-            return response;
-        }
-        
-        // Load entry from original URL
-        // This will be redirected by the modified fetch() method as well as any other files the entry requests
-        player.load(data.launchCommand);
-        
-        // Display title of entry
-        document.querySelector('#title').textContent = data.title;
-        
-        // Display direct link to entry
-        document.querySelector('#direct a').href = './?' + data.uuid;
-        document.querySelector('#direct').hidden = false;
-
-        document.querySelector('#metadata-UUID').textContent = data.uuid;
-        document.querySelector('#metadata-Title').textContent = data.title;
-        document.querySelector('#metadata-AlternateTitles').textContent = data.alternateTitles;
-        document.querySelector('#metadata-Series').textContent = data.series;
-        document.querySelector('#metadata-Developer').textContent = data.developer;
-        document.querySelector('#metadata-Publisher').textContent = data.publisher;
-        document.querySelector('#metadata-Platform').textContent = data.platform;
-        document.querySelector('#metadata-Extreme').textContent = data.extreme;
-        document.querySelector('#metadata-PlayMode').textContent = data.playMode;
-        document.querySelector('#metadata-Status').textContent = data.status;
-        document.querySelector('#metadata-GameNotes').textContent = data.gameNotes;
-        document.querySelector('#metadata-Source').textContent = data.source;
-        document.querySelector('#metadata-LaunchCommand').textContent = data.launchCommand;
-        document.querySelector('#metadata-ReleaseDate').textContent = data.releaseDate;
-        document.querySelector('#metadata-Version').textContent = data.version;
-        document.querySelector('#metadata-OriginalDescription').textContent = data.originalDescription;
-        document.querySelector('#metadata-Languages').textContent = data.languages;
-        document.querySelector('#metadata-Library').textContent = data.library;
-        document.querySelector('#metadata-Tags').textContent = data.tags;
-        document.querySelector('#metadata-DateAdded').textContent = data.dateAdded;
-        document.querySelector('#metadata-DateModified').textContent = data.dateModified;
-
-        // Display compatibility rating of entry
-        if (data.votesWorking + data.votesBroken > 0) {
-            let totalVotes = data.votesWorking + data.votesBroken,
-                fraction   = data.votesWorking / totalVotes,
-                rating     = Math.round(fraction * 100) / 10;
-            
-            document.querySelector('#rating span').textContent = ` ${rating}/10 (${totalVotes} total votes)`;
-        }
-        else
-            document.querySelector('#rating span').textContent = ` none yet`;
-        
-        // Once loaded, set dimensions of player to that of the SWF
-        player.addEventListener('loadedmetadata', () => {
-            if (player.metadata.width > 1 && player.metadata.height > 1) {
-                player.style.width  = player.metadata.width  + 'px';
-                player.style.height = player.metadata.height + 'px';
-            }
-        });
-        
-        // Now that everything else is ready, display voting prompt
-        document.querySelector('#vote').hidden = false;
+    let toggle = document.querySelector('.toggle input');
+    
+    if (localStorage.getItem('filter') == 'false')
+        toggle.checked = false;
+    
+    toggle.addEventListener('change', e => {
+        localStorage.setItem('filter', e.target.checked.toString());
     });
+    
+    document.querySelector('.info').href = 'https://flashpointproject.github.io/flashpoint-database/search/#' + entry.uuid;
+    document.querySelector('.link').href = './?' + entry.uuid;
+    
+    let total = entry.votesWorking + entry.votesBroken,
+        fraction = total > 0 ? (entry.votesWorking / total) : 0;
+    
+    document.querySelector('.fraction').textContent = Math.round(fraction * 100) / 10;
+    document.querySelector('.total').textContent = total;
+    
+    document.querySelectorAll('.button').forEach(elem => elem.addEventListener('click', () => {
+        _fetch(`${oooo}/${elem.classList[1]}?id=${entry.uuid}`, { method: 'POST' }).then(() => {
+            document.querySelector('.vote').textContent = 'Thank you.';
+        });
+    }));
+    
+    for (let i = 0; i < players.length; i++) {
+        if (players[i].extensions.some(ext => entry.launchCommand.toLowerCase().endsWith(ext))) {
+            let script = document.createElement('script');
+            script.src = players[i].source;
+            
+            document.head.append(script);
+            script.addEventListener('load', () => playEntry(entry, i));
+            
+            return;
+        }
+    }
 });
 
-// Send vote to server
-function vote(callback) {
-    let xhr = new XMLHttpRequest();
-    xhr.open('POST', callback(), true);
-    xhr.send();
+async function playEntry(entry, player) {
+    let gameZip = null;
+    if (entry.zipped) gameZip = await new JSZip().loadAsync(await fetch(`${fpdb}/get?id=${entry.uuid}`).then(r => r.blob()));
     
-    // Replace voting buttons with a thank you message
-    document.querySelector('#vote span:first-child').hidden = true;
-    document.querySelector('#vote span:last-child' ).hidden = false;
-}
-
-function showMetadata() {
-    let status = document.querySelector('#metadata').hidden;
-    if (status === false) {
-        document.querySelector('#metadata').hidden = true;
-        document.querySelector('#metadata-toggle').textContent = "Open metadata table"
-    } else {
-        document.querySelector('#metadata').hidden = false;
-        document.querySelector('#metadata-toggle').textContent = "Close metadata table"
+    let redirect = async url => {
+        let info = {
+            base: new URL(url.origin == location.origin ? url.pathname.substring(1) : url.href, entry.launchCommand),
+            url: ''
+        };
+        
+        if (entry.zipped) {
+            let redirectedFile = gameZip.file('content/' + info.base.hostname + info.base.pathname);
+            if (redirectedFile != null) {
+                info.url = URL.createObjectURL(await redirectedFile.async('blob'));
+                return info;
+            }
+        }
+        
+        info.url = `${fpdb}/get?url=${info.base.hostname + info.base.pathname}`;
+        return info;
+    };
+    
+    window.fetch = async (resource, options) => {
+        let resourceURL = new URL(resource instanceof Request ? resource.url : resource);
+        
+        if (resourceURL.protocol == 'blob:')
+            resourceURL = new URL(resourceURL.pathname);
+        
+        if (resourceURL.hostname == 'unpkg.com' || !resourceURL.protocol.startsWith('http'))
+            return await _fetch(resource, options);
+        
+        let redirectInfo = await redirect(resourceURL),
+            response = await _fetch(redirectInfo.url, options);
+        
+        Object.defineProperty(response, 'url', { value: redirectInfo.base.href });
+        return response;
     }
+    
+    document.createElement = function(...args) {
+        let element = _createElement.apply(this, args),
+            observer = new MutationObserver(async records => {
+                for (let record of records) {
+                    if (['blob:', api].some(prefix => record.target.src.startsWith(prefix))) continue;
+                    record.target.src = (await redirect(new URL(record.target.src))).url;
+                }
+            });
+        
+        if (element.tagName == 'IMG')
+            observer.observe(element, { attributes: true, attributeFilter: ['src'] });
+        
+        return element;
+    };
+    
+    players[player].initialize(entry.launchCommand);
 }

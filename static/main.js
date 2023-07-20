@@ -140,7 +140,7 @@ async function playEntry(entry, player) {
         let element = _createElement.apply(this, args),
             observer = new MutationObserver(async records => {
                 for (let record of records) {
-                    if (['blob:', api].some(prefix => record.target.src.startsWith(prefix))) continue;
+                    if (['blob:', fpdb].some(prefix => record.target.src.startsWith(prefix))) continue;
                     record.target.src = (await redirect(new URL(record.target.src))).url;
                 }
             });

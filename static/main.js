@@ -1,4 +1,4 @@
-const oooo = 'http://127.0.0.1:8985';
+const oooo = 'https://api.ooooooooo.ooo';
 const fpdb = 'https://db-api.unstable.life';
 
 const _fetch = window.fetch;

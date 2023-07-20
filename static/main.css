@@ -14,6 +14,9 @@ a:hover, .button:hover {
     text-decoration: underline;
     cursor: pointer;
 }
+a:visited {
+    color: #fff;
+}
 .content {
     min-height: 100vh;
     display: flex;

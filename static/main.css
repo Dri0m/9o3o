@@ -28,7 +28,7 @@ a:visited {
 .header {
     font-size: 24px;
     font-weight: bold;
-    margin-bottom: 4px;
+    margin: 12px 0 4px;
 }
 .header-info:link {
     color: #fff6;
@@ -40,6 +40,7 @@ a:visited {
 .footer {
     width: 512px;
     font-size: 12px;
+    margin-bottom: 20px;
     display: flex;
     flex-direction: column;
 }

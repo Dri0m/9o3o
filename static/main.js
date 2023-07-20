@@ -100,7 +100,15 @@ fetch(request).then(async response => {
 
 async function playEntry(entry, player) {
     let gameZip = null;
-    if (entry.zipped) gameZip = await new JSZip().loadAsync(await fetch(`${fpdb}/get?id=${entry.uuid}`).then(r => r.blob()));
+    try {
+        if (entry.zipped) gameZip = await new JSZip().loadAsync(await fetch(`${fpdb}/get?id=${entry.uuid}`).then(r => r.blob()));
+    } catch {
+        let player = document.querySelector('.player');
+        player.style.fontSize = '12px';
+        player.style.padding = '16px 0 20px';
+        player.textContent = 'Failed to load entry. This is not an emulator issue.';
+        return;
+    }
     
     let redirect = async url => {
         let info = {

@@ -1,62 +1,62 @@
 body {
-    background-color: #000;
     color: #fff;
-    text-align: center;
+    font-family: "Verdana", sans-serif;
+    background: radial-gradient(#2d2d30, #1b1b1c);
+    margin: 0;
+    padding: 0;
 }
-
-a:link {
-    color: #ccc;
-}
-
-a:hover {
+a:link, .button {
     color: #fff;
-}
-
-#header {
-    margin: 10px 0 12px;
-}
-
-#title {
     font-weight: bold;
+    text-decoration: none;
 }
-
-#direct a {
-    display: inline-block;
-    margin-left: 10px;
-}
-
-#random a {
-    display: inline-block;
-    margin: 16px;
-}
-
-#footer {
-    margin: 16px 0 12px;
-}
-
-#rating div {
-    margin: 8px 0;
-}
-
-table {
-    text-align: left;
-    max-width: 800px;
-    margin: auto; /* Centers the table horizontally */
-    word-wrap: break-word; /* Forces the text to wrap */
-    table-layout: fixed; /* Uses the fixed layout algorithm */
-}
-
-table td:first-child { /* Selects the first column of the table */
-    text-align: left;
-    max-width: 200px;
-    word-wrap: break-word;
-}
-
-table, th, td {
-    border: 1px solid white;
-    border-collapse: collapse;
-}
-
-#metadata-toggle {
+a:hover, .button:hover {
     text-decoration: underline;
+    cursor: pointer;
+}
+a:visited {
+    color: #fff;
+}
+.content {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+}
+.header {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 12px 0 4px;
+}
+.header-info:link {
+    color: #fff6;
+}
+.header-info:hover {
+    color: #fff;
+    text-decoration: none;
+}
+.footer {
+    width: 512px;
+    font-size: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+}
+.footer > div {
+    display: flex;
+    justify-content: space-between;
+}
+.navigation > div {
+    display: flex;
+    gap: 8px;
+}
+.toggle input {
+    vertical-align: top;
+    position: relative;
+    bottom: 3px;
+}
+.toggle label {
+    padding-left: 3px;
 }

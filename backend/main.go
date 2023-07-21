@@ -1,10 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -17,85 +17,72 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-type Game struct {
-	UUID                string    `json:"uuid,omitempty"`
-	Title               *string   `json:"title,omitempty"`
-	AlternateTitles     *string   `json:"alternateTitles,omitempty"`
-	Series              *string   `json:"series,omitempty"`
-	Developer           *string   `json:"developer,omitempty"`
-	Publisher           *string   `json:"publisher,omitempty"`
-	Platform            *string   `json:"platform,omitempty"`
-	Extreme             *string   `json:"extreme,omitempty"`
-	PlayMode            *string   `json:"playMode,omitempty"`
-	Status              *string   `json:"status,omitempty"`
-	GameNotes           *string   `json:"gameNotes,omitempty"`
-	Source              *string   `json:"source,omitempty"`
-	LaunchCommand       *string   `json:"launchCommand,omitempty"`
-	ReleaseDate         *string   `json:"releaseDate,omitempty"`
-	Version             *string   `json:"version,omitempty"`
-	OriginalDescription *string   `json:"originalDescription,omitempty"`
-	Languages           *string   `json:"languages,omitempty"`
-	Library             *string   `json:"library,omitempty"`
-	Tags                *string   `json:"tags,omitempty"`
-	DateAdded           time.Time `json:"dateAdded"`
-	DateModified        time.Time `json:"dateModified"`
-	VotesWorking        int       `json:"votesWorking"`
-	VotesBroken         int       `json:"votesBroken"`
+type Config struct {
+	FPDatabase     string   `json:"fpDatabase"`
+	VotesDatabase  string   `json:"votesDatabase"`
+	FileExtensions []string `json:"fileExtensions"`
+	FilteredTags   []string `json:"filteredTags"`
 }
 
-const InternalServerError = "internal server error"
+type Entry struct {
+	UUID          string `json:"uuid"`
+	Title         string `json:"title"`
+	LaunchCommand string `json:"launchCommand"`
+	Zipped        bool   `json:"zipped"`
+	Extreme       bool   `json:"extreme"`
+	VotesWorking  int    `json:"votesWorking"`
+	VotesBroken   int    `json:"votesBroken"`
+}
 
-var flashpointDB *sql.DB
-var votesDB *sql.DB
-
-var filter = make([]string, 0)
+var (
+	config        Config
+	fpDatabase    *sql.DB
+	votesDatabase *sql.DB
+)
 
 func main() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMicro
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
-	// Import filter
-	filterFile, err := os.Open("filter.txt")
+	// Load config.json
+	configFile, err := os.ReadFile("config.json")
 	if err != nil {
-		log.Warn().Msg("could not import filter.txt; NSFW entries will not be filtered")
+		log.Fatal().Err(err).Msg("failed to read config.json")
+	} else if err := json.Unmarshal([]byte(configFile), &config); err != nil {
+		log.Fatal().Err(err).Msg("failed to parse config.json")
 	} else {
-		log.Info().Msg("imported filter.txt")
+		log.Debug().Msg("loaded config.json")
 	}
 
-	sc := bufio.NewScanner(filterFile)
-
-	for sc.Scan() {
-		filter = append(filter, sc.Text())
-	}
-
-	// Connect Flashpoint database
-	flashpointDB, err = sql.Open("sqlite3", "flashpoint.sqlite")
+	// Connect to Flashpoint database
+	fpDatabase, err = sql.Open("sqlite3", config.FPDatabase)
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to open flashpoint database")
+		log.Fatal().Err(err).Msg("failed to open Flashpoint database")
 	}
 
-	defer flashpointDB.Close()
-	log.Debug().Msg("connected to flashpoint.sqlite")
+	defer fpDatabase.Close()
+	log.Debug().Msg("connected to Flashpoint database")
 
-	// Create vote database if it doesn't exist, then connect
-	if _, err := os.Stat("votes.sqlite"); errors.Is(err, os.ErrNotExist) {
-		if _, err := os.Create("votes.sqlite"); err != nil {
+	// Create votes database if it doesn't exist
+	if _, err := os.Stat(config.VotesDatabase); errors.Is(err, os.ErrNotExist) {
+		if _, err := os.Create(config.VotesDatabase); err != nil {
 			log.Fatal().Err(err).Msg("failed to initialize votes database")
 		}
-		log.Debug().Msg("created votes.sqlite file")
+		log.Debug().Msg("created votes database")
 	}
 
-	votesDB, err = sql.Open("sqlite3", "votes.sqlite?cache=shared&mode=rwc")
+	// Connect to votes database
+	votesDatabase, err = sql.Open("sqlite3", config.VotesDatabase+"?cache=shared&mode=rwc")
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to open votes database")
 	}
-	votesDB.SetMaxOpenConns(1)
+	votesDatabase.SetMaxOpenConns(1)
 
-	defer votesDB.Close()
-	log.Info().Msg("connected to votes.sqlite")
+	defer votesDatabase.Close()
+	log.Info().Msg("connected to votes database")
 
 	// Create vote table if it doesn't exist
-	_, err = votesDB.Exec(`
+	_, err = votesDatabase.Exec(`
         CREATE TABLE IF NOT EXISTS votes (
             id      VARCHAR(36) PRIMARY KEY,
             working INTEGER,
@@ -107,10 +94,9 @@ func main() {
 	}
 
 	// Set up and start server
-	http.HandleFunc("/random", randomHandler)
-	http.HandleFunc("/get/", getHandler)
-	http.HandleFunc("/working/", workingHandler)
-	http.HandleFunc("/broken/", brokenHandler)
+	http.HandleFunc("/get", getHandler)
+	http.HandleFunc("/working", votesHandler)
+	http.HandleFunc("/broken", votesHandler)
 
 	server := &http.Server{
 		Addr:         "127.0.0.1:8985",
@@ -125,200 +111,162 @@ func main() {
 	}
 }
 
-func write500(w http.ResponseWriter) {
-	w.Write([]byte(InternalServerError))
-	w.WriteHeader(http.StatusInternalServerError)
-}
+// Return JSON-formatted info about a specific or random entry
+func getHandler(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	uuid := query.Get("id")
 
-// Return JSON-formatted info about a random Flashpoint entry
-func randomHandler(w http.ResponseWriter, r *http.Request) {
-	var g *Game
+	var entry *Entry
 
-	// If the NSFW filter is active, "re-roll" until a non-NSFW entry is picked
-ParentLoop:
 	for {
-		var uuid string
+		var err error
+		if entry, err = getEntry(uuid); err != nil {
+			var response string
 
-		fpRow := flashpointDB.QueryRow(`
-                SELECT   id
-                FROM     game 
-                WHERE    launchCommand LIKE '%.swf'
-                ORDER BY random()
-                LIMIT    1
-            `)
-		err := fpRow.Scan(&uuid)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to obtain random game from database")
-			write500(w)
-			return
-		}
-
-		g, err = getMetadata(uuid)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to obtain metadata from database")
-			write500(w)
-			return
-		}
-
-		// we want a NSFW game so stop
-		if r.URL.Query().Has("nsfw") {
-			break
-		}
-
-		// otherwise check if the game is NSFW or not
-		tagArray := strings.Split(*g.Tags, ";")
-
-		for _, v := range tagArray {
-			v := strings.TrimSpace(v)
-			if slices.Contains(filter, v) {
-				continue ParentLoop
+			if err == sql.ErrNoRows {
+				response = "the specified UUID is invalid"
+			} else {
+				response = "failed to obtain entry from database"
 			}
+
+			log.Error().Err(err).Str("uuid", uuid).Msg(response)
+			w.WriteHeader(http.StatusInternalServerError)
+			writeMessage(w, response)
+
+			return
 		}
 
-		vRow := votesDB.QueryRow(`
-                SELECT working, broken
-                FROM   votes
-                WHERE  id = ?
-            `, g.UUID)
-		err = vRow.Scan(&g.VotesWorking, &g.VotesBroken)
-		if err != sql.ErrNoRows && err != nil {
-			log.Error().Err(err).Msg("failed to obtain votes from database")
-			write500(w)
-			return
+		if entry.Extreme && len(uuid) == 0 && strings.ToLower(query.Get("filter")) == "true" {
+			continue
 		}
 
 		break
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	err := json.NewEncoder(w).Encode(g)
-	if err != nil {
+	if err := json.NewEncoder(w).Encode(entry); err != nil {
 		log.Error().Err(err).Msg("failed to marshal response to the user")
-		write500(w)
-		return
-	}
-
-	log.Debug().Msgf("served %v (%v)", r.URL.RequestURI(), g.UUID)
-}
-
-// Return JSON-formatted info about the specified entry
-func getHandler(w http.ResponseWriter, r *http.Request) {
-	uuid := r.URL.Path[5:]
-	ok := verifyUUID(uuid)
-
-	var g *Game
-	var err error
-
-	if ok {
-		g, err = getMetadata(uuid)
-		if err != sql.ErrNoRows && err != nil {
-			log.Error().Err(err).Str("uuid", uuid).Msg("failed to obtain game from database")
-			write500(w)
-			return
-		}
-
-		vRow := votesDB.QueryRow(`
-            SELECT working, broken
-            FROM   votes
-            WHERE  id = ?
-        `, uuid)
-		err = vRow.Scan(&g.VotesWorking, &g.VotesBroken)
-		if err != sql.ErrNoRows && err != nil {
-			log.Error().Err(err).Msg("failed to obtain votes from database")
-			write500(w)
-			return
-		}
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(g)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to marshal response to the user")
-		write500(w)
+		writeServerError(w)
 		return
 	}
 
 	log.Debug().Msgf("served %v", r.URL.RequestURI())
 }
 
-// Add new vote that the specified entry is working
-func workingHandler(w http.ResponseWriter, r *http.Request) {
-	response, err := addVote(r.URL.Path[9:], `
-        INSERT INTO votes (id, working, broken) VALUES (?, 1, 0)
-        ON CONFLICT (id) DO UPDATE SET working = working + 1
-    `)
-	if err != nil {
+// Add new vote for the specified entry
+func votesHandler(w http.ResponseWriter, r *http.Request) {
+	var response string
+
+	if err := addVote(r.URL.Query().Get("id"), r.URL.Path == "/working"); err != nil {
 		log.Error().Err(err).Msg("failed to add vote")
-		write500(w)
-		return
+		if err == sql.ErrNoRows {
+			response = "the specified UUID is invalid"
+		} else {
+			response = "internal server error"
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	} else {
+		response = "success"
 	}
 
-	_, err = w.Write([]byte(response))
-	if err != nil {
-		log.Error().Err(err).Msg("failed write response to the user")
-		write500(w)
-		return
-	}
-
+	writeMessage(w, response)
 	log.Debug().Msgf("received %v (%v)", r.URL.RequestURI(), response)
 }
 
-// Add new vote that the specified entry is broken
-func brokenHandler(w http.ResponseWriter, r *http.Request) {
-	response, err := addVote(r.URL.Path[8:], `
-        INSERT INTO votes (id, working, broken) VALUES (?, 0, 1)
-        ON CONFLICT (id) DO UPDATE SET broken = broken + 1
-    `)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to add vote")
-		write500(w)
-		return
+// Make sure entry has a valid UUID and contains a supported file extension in the launch command
+func getEntry(uuid string) (*Entry, error) {
+	if len(uuid) != 0 && !verifyUUID(uuid) {
+		return nil, sql.ErrNoRows
 	}
 
-	_, err = w.Write([]byte(response))
-	if err != nil {
-		log.Error().Err(err).Msg("failed write response to the user")
-		write500(w)
-		return
+	var suffix string
+	if len(uuid) == 0 {
+		suffix = "ORDER BY random() LIMIT 1"
+	} else {
+		suffix = "AND id = ?"
 	}
 
-	log.Debug().Msgf("received %v (%v)", r.URL.RequestURI(), response)
+	var entry Entry
+	var tagsStr string
+
+	fpRow := fpDatabase.QueryRow(fmt.Sprintf(`
+		SELECT * FROM (
+			SELECT game.id, game.title,  game.tagsStr,
+				CASE WHEN activeDataId ISNULL THEN 0 ELSE 1 END AS activeDataOnDisk,
+				coalesce(game_data.launchCommand, game.launchCommand) AS launchCommand
+			FROM game LEFT JOIN game_data ON game.id = game_data.gameId
+		) WHERE (launchCommand LIKE "%%.%s") %s
+	`, strings.Join(config.FileExtensions, `" OR launchCommand LIKE "%.`), suffix), uuid)
+	if err := fpRow.Scan(&entry.UUID, &entry.Title, &tagsStr, &entry.Zipped, &entry.LaunchCommand); err != nil {
+		return nil, err
+	}
+
+	entry.Extreme = false
+	for _, tag := range strings.Split(tagsStr, "; ") {
+		if slices.Contains(config.FilteredTags, tag) {
+			entry.Extreme = true
+			break
+		}
+	}
+
+	votesRow := votesDatabase.QueryRow("SELECT working, broken FROM votes WHERE id = ?", uuid)
+	if err := votesRow.Scan(&entry.VotesWorking, &entry.VotesBroken); err != sql.ErrNoRows && err != nil {
+		return nil, err
+	}
+
+	return &entry, nil
 }
 
-// Update vote database with new vote
-func addVote(id string, q string) (string, error) {
-	if !verifyUUID(id) {
-		return "UUID is not valid", nil
+// Update votes database with new vote
+func addVote(uuid string, working bool) error {
+	if !verifyUUID(uuid) {
+		return sql.ErrNoRows
 	}
 
-	row := flashpointDB.QueryRow(`
-        SELECT id
-        FROM   game
-        WHERE  id = ?
-    `, id)
-	switch err := row.Scan(&id); err {
-	case sql.ErrNoRows:
-		return "UUID does not exist", nil
-	case nil:
-	default:
-		return "", err
+	row := fpDatabase.QueryRow(fmt.Sprintf(`
+		SELECT * FROM (
+			SELECT game.id, coalesce(game_data.launchCommand, game.launchCommand) AS launchCommand
+			FROM game LEFT JOIN game_data ON game.id = game_data.gameId
+		) WHERE (launchCommand LIKE "%%.%s") AND id = ?
+	`, strings.Join(config.FileExtensions, `" OR launchCommand LIKE "%.`)), uuid)
+	if err := row.Err(); err != nil {
+		return err
 	}
 
-	if _, err := votesDB.Exec(q, id); err != nil {
-		return "", err
+	var (
+		workingInt int
+		brokenInt  int
+		voteString string
+	)
+
+	if working {
+		workingInt = 1
+		brokenInt = 0
+		voteString = "working"
+	} else {
+		workingInt = 0
+		brokenInt = 1
+		voteString = "broken"
 	}
 
-	return "Success", nil
+	if _, err := votesDatabase.Exec(fmt.Sprintf(`
+		INSERT INTO votes (id, working, broken) VALUES (?, %[1]d, %[2]d)
+		ON CONFLICT (id) DO UPDATE SET %[3]s = %[3]s + 1
+	`, workingInt, brokenInt, voteString), uuid); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func verifyUUID(s string) bool {
-	if len(s) != 36 {
+// Check if UUID is the correct format
+func verifyUUID(uuid string) bool {
+	if len(uuid) != 36 {
 		return false
 	}
 
-	safeChars := "abcdefghijklmnopqrstuvwxyz0123456789-"
-	for _, v := range s {
-		if !strings.Contains(safeChars, string(v)) {
+	for _, v := range uuid {
+		if !strings.Contains("abcdefghijklmnopqrstuvwxyz0123456789-", string(v)) {
 			return false
 		}
 	}
@@ -326,31 +274,14 @@ func verifyUUID(s string) bool {
 	return true
 }
 
-func getMetadata(uuid string) (*Game, error) {
-	row := flashpointDB.QueryRow(`
-		SELECT id, title, alternateTitles, series, developer, publisher, platform, extreme, playMode, status, notes,
-		       source, launchCommand, releaseDate, version, originalDescription, language, library, tagsStr, dateAdded, dateModified
-		FROM game
-		WHERE id=?`, uuid)
+func writeServerError(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusInternalServerError)
+	writeMessage(w, "internal server error")
+}
 
-	g := Game{}
-
-	var isExtreme bool
-
-	err := row.Scan(
-		&g.UUID, &g.Title, &g.AlternateTitles, &g.Series, &g.Developer, &g.Publisher, &g.Platform,
-		&isExtreme, &g.PlayMode, &g.Status, &g.GameNotes, &g.Source, &g.LaunchCommand, &g.ReleaseDate,
-		&g.Version, &g.OriginalDescription, &g.Languages, &g.Library, &g.Tags, &g.DateAdded, &g.DateModified)
-	if err != nil {
-		return nil, err
+func writeMessage(w http.ResponseWriter, message string) {
+	if _, err := w.Write([]byte(message)); err != nil {
+		log.Error().Err(err).Msg("failed write response to the user")
+		return
 	}
-	if isExtreme {
-		yes := "Yes"
-		g.Extreme = &yes
-	} else {
-		no := "No"
-		g.Extreme = &no
-	}
-
-	return &g, nil
 }

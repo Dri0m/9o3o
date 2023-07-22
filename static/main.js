@@ -83,9 +83,8 @@ fetch(request).then(async response => {
     }
     
     document.querySelectorAll('.button').forEach(elem => elem.addEventListener('click', () => {
-        _fetch(`${oooo}/${elem.classList[1]}?id=${entry.uuid}`, { method: 'POST' }).then(() => {
-            document.querySelector('.vote').textContent = 'Thank you.';
-        });
+        document.querySelector('.vote').textContent = 'Thank you.';
+        _fetch(`${oooo}/${elem.classList[1]}?id=${entry.uuid}`, { method: 'POST' });
     }));
     
     for (let i = 0; i < players.length; i++) {

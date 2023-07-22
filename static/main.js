@@ -12,10 +12,7 @@ const players = [
         
         initialize(launchCommand) {
             let player = window.RufflePlayer.newest().createPlayer();
-            player.config = {
-                warnOnUnsupportedContent: false,
-                base: launchCommand.substring(0, launchCommand.lastIndexOf('/'))
-            };
+            player.config.base = launchCommand.substring(0, launchCommand.lastIndexOf('/'));
             
             document.querySelector('.player').append(player);
             player.load(launchCommand);

@@ -7,8 +7,8 @@ const fpdb = 'https://db-api.unstable.life';
 // Automatically convert URL objects to their redirected equivalents
 const redirect = async request => {
     let url = {
-        // The requested URL, adjusted to use the launch command as the base rather than the current domain
-        original: new URL(request.origin == location.origin ? request.pathname.substring(1) : request.href, entry.launchCommand),
+        // The requested URL, adjusted to use the launch command as the base rather than the current domain or database API
+        original: new URL([location.origin, fpdb].some(origin => origin == request.origin) ? request.pathname.substring(1) : request.href, entry.launchCommand),
         // The actual URL from which the requested file will be retrieved
         redirect: ''
     };
@@ -94,7 +94,7 @@ const players = [
             document.createElement = function(...args) {
                 let observer = new MutationObserver(async records => {
                     // Only redirect requests that haven't already been redirected yet
-                    let r = records.findIndex(record => !['blob:', fpdb].some(prefix => record.target.src.startsWith(prefix)));
+                    let r = records.findIndex(record => !['blob:', fpdb + '/get?'].some(prefix => record.target.src.startsWith(prefix)));
                     if (r != -1) records[r].target.src = (await redirect(new URL(records[r].target.src))).redirect;
                 });
                 

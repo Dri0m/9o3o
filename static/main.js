@@ -12,6 +12,8 @@ const players = [
         platforms: [ 'Flash' ],
         extensions: [ '.swf' ],
         
+        get override() { return window.RufflePlayer && window.RufflePlayer.sources.extension != null; },
+        
         initialize(launchCommand) {
             let player = window.RufflePlayer.newest().createPlayer();
             // Set base URL to path of launch command
@@ -34,6 +36,8 @@ const players = [
         source: 'https://create3000.github.io/code/x_ite/latest/x_ite.min.js',
         platforms: [ 'VRML', 'X3D' ],
         extensions: [ '.wrl', '.wrl.gz', '.x3d' ],
+        
+        get override() { return false; },
         
         initialize(launchCommand) {
             let player = X3D.createBrowser();
@@ -103,12 +107,16 @@ fetch(request).then(async response => {
     // Identify appropriate player based on launch command
     let p = Math.max(0, players.findIndex(player => player.extensions.some(ext => entry.launchCommand.toLowerCase().endsWith(ext))));
     
-    // Load player by appending <script> element to page
-    let script = document.createElement('script');
-    script.src = players[p].source;
-    // Add to page and activate redirector once script is loaded
-    script.addEventListener('load', () => playEntry(entry, p));
-    document.head.append(script);
+    // Don't load a second instance of player if it's already active (ie. by using an extension)
+    if (players[p].override)
+        playEntry(entry, p);
+    // Otherwise, load player by appending <script> element to page
+    else {
+        let script = document.createElement('script');
+        script.src = players[p].source;
+        script.addEventListener('load', () => playEntry(entry, p));
+        document.head.append(script);
+    }
 });
 
 async function playEntry(entry, p) {

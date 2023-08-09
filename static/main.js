@@ -177,8 +177,8 @@ fetch(request).then(async response => {
     // Don't load a second instance of player if it's already active (ie. by using an extension)
     if (players[p].override)
         prepareEntry();
+    // Otherwise, load player by appending <script> element to page
     else {
-        // Load player by appending <script> element to page
         let script = document.createElement('script');
         script.src = players[p].source;
         script.addEventListener('load', prepareEntry);

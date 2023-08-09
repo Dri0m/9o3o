@@ -65,7 +65,7 @@ const players = [
             // Create instance of player
             let player = window.RufflePlayer.newest().createPlayer();
             // Set base URL to path of launch command
-            player.config.base = entry.launchCommand.substring(0, entry.launchCommand.lastIndexOf('/'));
+            player.config.base = entry.launchCommand.substring(0, entry.launchCommand.lastIndexOf('/') + 1);
             
             // Add player to DOM and load
             document.querySelector('.player').append(player);
@@ -113,7 +113,7 @@ const players = [
             player.style.width = '900px';
             player.style.height = '600px';
             // Set base URL to path of launch command
-            player.browser.baseURL = entry.launchCommand.substring(0, entry.launchCommand.lastIndexOf('/'));
+            player.browser.baseURL = entry.launchCommand.substring(0, entry.launchCommand.lastIndexOf('/') + 1);
             
             // Add player to DOM and load
             document.querySelector('.player').append(player);

@@ -70,6 +70,8 @@ const players = [
             let player = window.RufflePlayer.newest().createPlayer();
             // Set base URL to path of launch command
             player.config.base = entry.launchCommand.substring(0, entry.launchCommand.lastIndexOf('/') + 1);
+            // Allow entries that use ExternalInterface to work
+            player.config.allowScriptAccess = true;
             
             // Add player to DOM and load
             document.querySelector('.player').append(player);

@@ -34,7 +34,11 @@ const players = [
         platforms: [ 'Flash' ],
         extensions: [ '.swf' ],
         
-        get override() { return window.RufflePlayer && window.RufflePlayer.sources.extension != null; },
+        // Override with extension if it was compiled within the past 24 hours
+        get override() {
+            const player = window.RufflePlayer, extension = player.sources.extension;
+            return player && extension != null && Date.now() - new Date(extension.version.split('+')[1]).getTime() < 86400000;
+        },
         
         async initialize() {
             // Create copy of unmodified fetch method
@@ -85,6 +89,7 @@ const players = [
         platforms: [ 'VRML', 'X3D' ],
         extensions: [ '.wrl', '.wrl.gz', '.x3d' ],
         
+        // There's currently no actively-developed X_ITE browser extension, so this will always return false
         get override() { return false; },
         
         async initialize() {

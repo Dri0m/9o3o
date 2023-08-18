@@ -36,8 +36,12 @@ const players = [
         
         // Override with extension if it was compiled within the past 24 hours
         get override() {
-            const player = window.RufflePlayer, extension = player.sources.extension;
-            return player && extension != null && Date.now() - new Date(extension.version.split('+')[1]).getTime() < 86400000;
+            const player = window.RufflePlayer;
+            if (window.RufflePlayer != null) {
+                const extension = player.sources.extension;
+                return extension != null && Date.now() - new Date(extension.version.split('+')[1]).getTime() < 86400000;
+            }
+            return false;
         },
         
         async initialize() {

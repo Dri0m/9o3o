@@ -28,7 +28,7 @@ type Entry struct {
 	UUID          string `json:"uuid"`
 	Title         string `json:"title"`
 	LaunchCommand string `json:"launchCommand"`
-	Zipped        bool   `json:"zipped"`
+	ArchivePath   string `json:"archivePath"`
 	Extreme       bool   `json:"extreme"`
 	VotesWorking  int    `json:"votesWorking"`
 	VotesBroken   int    `json:"votesBroken"`
@@ -83,12 +83,12 @@ func main() {
 
 	// Create vote table if it doesn't exist
 	_, err = votesDatabase.Exec(`
-        CREATE TABLE IF NOT EXISTS votes (
-            id      VARCHAR(36) PRIMARY KEY,
-            working INTEGER,
-            broken  INTEGER
-        )
-    `)
+		CREATE TABLE IF NOT EXISTS votes (
+			id      VARCHAR(36) PRIMARY KEY,
+			working INTEGER,
+			broken  INTEGER
+		)
+	`)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to initialize votes table")
 	}
@@ -144,6 +144,8 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	// w.Header().Set("Access-Control-Allow-Origin", "*")
+	// w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	if err := json.NewEncoder(w).Encode(entry); err != nil {
 		log.Error().Err(err).Msg("failed to marshal response to the user")
 		writeServerError(w)
@@ -168,6 +170,9 @@ func votesHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		response = "success"
 	}
+	
+	// w.Header().Set("Access-Control-Allow-Origin", "*")
+	// w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
 	writeMessage(w, response)
 	log.Debug().Msgf("received %v (%v)", r.URL.RequestURI(), response)
@@ -192,12 +197,12 @@ func getEntry(uuid string) (*Entry, error) {
 	fpRow := fpDatabase.QueryRow(fmt.Sprintf(`
 		SELECT * FROM (
 			SELECT game.id, game.title,  game.tagsStr,
-				CASE WHEN activeDataId ISNULL THEN 0 ELSE 1 END AS activeDataOnDisk,
-				coalesce(game_data.launchCommand, game.launchCommand) AS launchCommand
+				coalesce(game_data.launchCommand, game.launchCommand) AS launchCommand,
+				IFNULL(path, "") AS path
 			FROM game LEFT JOIN game_data ON game.id = game_data.gameId
 		) WHERE (launchCommand LIKE "%%.%s") %s
 	`, strings.Join(config.FileExtensions, `" OR launchCommand LIKE "%.`), suffix), uuid)
-	if err := fpRow.Scan(&entry.UUID, &entry.Title, &tagsStr, &entry.Zipped, &entry.LaunchCommand); err != nil {
+	if err := fpRow.Scan(&entry.UUID, &entry.Title, &tagsStr, &entry.LaunchCommand, &entry.ArchivePath); err != nil {
 		return nil, err
 	}
 

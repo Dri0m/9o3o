@@ -1,14 +1,15 @@
 let entry = null;
 let gameZip = null;
 
-const oooo = 'https://api.ooooooooo.ooo';
-const fpdb = 'https://db-api.unstable.life';
+const oooo = 'http://127.0.0.1:8985';
+const zipURL = new URL('https://download.unstable.life/gib-roms/Games/');
+const legacyURL = new URL('https://infinity.unstable.life/Flashpoint/Legacy/htdocs/');
 
 // Automatically convert URL objects to their redirected equivalents
 const redirect = async request => {
     let url = {
         // The requested URL, adjusted to use the launch command as the base rather than the current domain or database API
-        original: new URL([location.origin, fpdb].some(origin => origin == request.origin) ? request.pathname.substring(1) : request.href, entry.launchCommand),
+        original: new URL([location.origin, zipURL.origin, legacyURL.origin].some(origin => origin == request.origin) ? request.pathname.substring(1) : request.href, entry.launchCommand),
         // The actual URL from which the requested file will be retrieved
         redirect: ''
     };
@@ -23,7 +24,7 @@ const redirect = async request => {
     }
     
     // If entry is not zipped or requested file does not exist inside zip, return API request to be fetched later
-    url.redirect = `${fpdb}/get?url=${url.original.hostname + url.original.pathname}`;
+    url.redirect = legacyURL.href + url.original.hostname + url.original.pathname;
     return url;
 };
 
@@ -105,7 +106,7 @@ const players = [
             document.createElement = function(...args) {
                 let observer = new MutationObserver(async records => {
                     // Only redirect requests that haven't already been redirected yet
-                    let r = records.findIndex(record => !['blob:', fpdb + '/get?'].some(prefix => record.target.src.startsWith(prefix)));
+                    let r = records.findIndex(record => !['blob:', zipURL.href, legacyURL.href].some(prefix => record.target.src.startsWith(prefix)));
                     if (r != -1) records[r].target.src = (await redirect(new URL(records[r].target.src))).redirect;
                 });
                 
@@ -198,10 +199,10 @@ fetch(request).then(async response => {
     
     // Get zip if needed, and begin setting up player and redirector
     async function prepareEntry() {
-        if (entry.zipped) {
+        if (entry.archivePath != '') {
             // If the entry is zipped, retrieve zip from API and load into JSZip
             try {
-                gameZip = await new JSZip().loadAsync(await fetch(`${fpdb}/get?id=${entry.uuid}`).then(r => r.blob()));
+                gameZip = await new JSZip().loadAsync(await fetch(zipURL + entry.archivePath).then(r => r.blob()));
             // If there are issues retrieving/loading the zip, display error message in place of player
             } catch {
                 let player = document.querySelector('.player');

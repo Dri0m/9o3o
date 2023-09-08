@@ -1,11 +1,14 @@
 {
   "fpDatabase": "flashpoint.sqlite",
   "votesDatabase": "votes.sqlite",
-  "fileExtensions": [
-    "swf",
-    "wrl",
-    "wrl.gz",
-    "x3d"
+  "allowedLaunchCommands": [
+    "%.swf",
+    "%.wrl",
+    "%.wrl.gz",
+    "%.x3d"
+  ],
+  "allowedApplicationPaths": [
+    "FPSoftware\\Flash\\%"
   ],
   "filteredTags": [
     "Adult",

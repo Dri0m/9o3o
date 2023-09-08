@@ -184,7 +184,9 @@ fetch(request).then(async response => {
     }));
     
     // Identify appropriate player based on launch command
-    let p = Math.max(0, players.findIndex(player => player.extensions.some(ext => entry.launchCommand.toLowerCase().endsWith(ext))));
+    let p = Math.max(0, (launchPath =>
+        players.findIndex(player => player.extensions.some(ext => launchPath.toLowerCase().endsWith(ext)))
+    )(new URL(entry.launchCommand).pathname));
     
     // Don't load a second instance of player if it's already active (ie. by using an extension)
     if (players[p].override)

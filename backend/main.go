@@ -18,17 +18,18 @@ import (
 )
 
 type Config struct {
-	FPDatabase     string   `json:"fpDatabase"`
-	VotesDatabase  string   `json:"votesDatabase"`
-	FileExtensions []string `json:"fileExtensions"`
-	FilteredTags   []string `json:"filteredTags"`
+	FPDatabase              string   `json:"fpDatabase"`
+	VotesDatabase           string   `json:"votesDatabase"`
+	AllowedLaunchCommands   []string `json:"allowedLaunchCommands"`
+	AllowedApplicationPaths []string `json:"allowedApplicationPaths"`
+	FilteredTags            []string `json:"filteredTags"`
 }
 
 type Entry struct {
 	UUID          string `json:"uuid"`
 	Title         string `json:"title"`
 	LaunchCommand string `json:"launchCommand"`
-	Zipped        bool   `json:"zipped"`
+	ArchivePath   string `json:"archivePath"`
 	Extreme       bool   `json:"extreme"`
 	VotesWorking  int    `json:"votesWorking"`
 	VotesBroken   int    `json:"votesBroken"`
@@ -36,6 +37,7 @@ type Entry struct {
 
 var (
 	config        Config
+	fpWhere       string
 	fpDatabase    *sql.DB
 	votesDatabase *sql.DB
 )
@@ -83,14 +85,26 @@ func main() {
 
 	// Create vote table if it doesn't exist
 	_, err = votesDatabase.Exec(`
-        CREATE TABLE IF NOT EXISTS votes (
-            id      VARCHAR(36) PRIMARY KEY,
-            working INTEGER,
-            broken  INTEGER
-        )
-    `)
+		CREATE TABLE IF NOT EXISTS votes (
+			id      VARCHAR(36) PRIMARY KEY,
+			working INTEGER,
+			broken  INTEGER
+		)
+	`)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to initialize votes table")
+	}
+
+	// Build WHERE component of SQL query
+	if len(config.AllowedLaunchCommands) > 0 || len(config.AllowedApplicationPaths) > 0 {
+		whereArray := make([]string, 0)
+		for _, s := range config.AllowedLaunchCommands {
+			whereArray = append(whereArray, fmt.Sprintf(`launchCommand LIKE "%s"`, s))
+		}
+		for _, s := range config.AllowedApplicationPaths {
+			whereArray = append(whereArray, fmt.Sprintf(`applicationPath LIKE "%s"`, s))
+		}
+		fpWhere = strings.Join(whereArray, " OR ")
 	}
 
 	// Set up and start server
@@ -144,6 +158,8 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	// w.Header().Set("Access-Control-Allow-Origin", "*")
+	// w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	if err := json.NewEncoder(w).Encode(entry); err != nil {
 		log.Error().Err(err).Msg("failed to marshal response to the user")
 		writeServerError(w)
@@ -169,6 +185,9 @@ func votesHandler(w http.ResponseWriter, r *http.Request) {
 		response = "success"
 	}
 
+	// w.Header().Set("Access-Control-Allow-Origin", "*")
+	// w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
 	writeMessage(w, response)
 	log.Debug().Msgf("received %v (%v)", r.URL.RequestURI(), response)
 }
@@ -190,14 +209,15 @@ func getEntry(uuid string) (*Entry, error) {
 	var tagsStr string
 
 	fpRow := fpDatabase.QueryRow(fmt.Sprintf(`
-		SELECT * FROM (
-			SELECT game.id, game.title,  game.tagsStr,
-				CASE WHEN activeDataId ISNULL THEN 0 ELSE 1 END AS activeDataOnDisk,
-				coalesce(game_data.launchCommand, game.launchCommand) AS launchCommand
+		SELECT id, title, tagsStr, launchCommand, path FROM (
+			SELECT game.id, game.title, game.tagsStr,
+				coalesce(game_data.launchCommand, game.launchCommand) AS launchCommand,
+				coalesce(game_data.applicationPath, game.applicationPath) AS applicationPath,
+				IFNULL(path, "") AS path
 			FROM game LEFT JOIN game_data ON game.id = game_data.gameId
-		) WHERE (launchCommand LIKE "%%.%s") %s
-	`, strings.Join(config.FileExtensions, `" OR launchCommand LIKE "%.`), suffix), uuid)
-	if err := fpRow.Scan(&entry.UUID, &entry.Title, &tagsStr, &entry.Zipped, &entry.LaunchCommand); err != nil {
+		) WHERE (%s) %s
+	`, fpWhere, suffix), uuid)
+	if err := fpRow.Scan(&entry.UUID, &entry.Title, &tagsStr, &entry.LaunchCommand, &entry.ArchivePath); err != nil {
 		return nil, err
 	}
 
@@ -227,8 +247,8 @@ func addVote(uuid string, working bool) error {
 		SELECT * FROM (
 			SELECT game.id, coalesce(game_data.launchCommand, game.launchCommand) AS launchCommand
 			FROM game LEFT JOIN game_data ON game.id = game_data.gameId
-		) WHERE (launchCommand LIKE "%%.%s") AND id = ?
-	`, strings.Join(config.FileExtensions, `" OR launchCommand LIKE "%.`)), uuid)
+		) WHERE (%s) AND id = ?
+	`, fpWhere), uuid)
 	if err := row.Err(); err != nil {
 		return err
 	}

@@ -1,17 +1,14 @@
 # 9o3o
-
 [https://ooooooooo.ooo/](https://ooooooooo.ooo/)
 
-This is a website that loads a random game from [BlueMaxima's Flashpoint](https://bluemaxima.org/flashpoint/) into the browser using [Ruffle](https://github.com/ruffle-rs/ruffle). It also replicates the URL spoofing capabilities of Flashpoint using a system based on TBubba's [Ruffle Redirect](https://github.com/TBubba/ruffle-redirect-poc) proof-of-concept.
-
-While the site currently has little functionality, the end goal is to essentially turn it into an online version of the Flashpoint archive.
+This is an experimental web frontend for the [Flashpoint Archive](https://flashpointarchive.org/). It utilizes open-source players such as [Ruffle](https://ruffle.rs/) and [X_ITE](https://create3000.github.io/x_ite/), while offering the full extent of Flashpoint's redirection and URL spoofing capabilities in the browser.
 
 ## Setup API Locally
 
 ### Prerequisites
 * [Go](https://go.dev/) (should be added to PATH)
 * [MinGW-w64](https://www.mingw-w64.org/) (`bin` folder should be added to PATH)
-* [flashpoint.sqlite](http://infinity.unstable.life/Flashpoint/Data/flashpoint.sqlite) (should exist in the same directory as the compiled executable)
+* `flashpoint.sqlite` (place inside backend folder or define path in config.json)
 
 ### Instructions
 1. Download the source code

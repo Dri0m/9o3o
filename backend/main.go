@@ -133,6 +133,7 @@ func main() {
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "../static/index.html")
+	log.Debug().Msg("served root")
 }
 
 // Return JSON-formatted info about a specific or random entry

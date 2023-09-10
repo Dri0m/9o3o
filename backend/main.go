@@ -18,6 +18,7 @@ import (
 )
 
 type Config struct {
+	Address                 string   `json:"address"`
 	FPDatabase              string   `json:"fpDatabase"`
 	VotesDatabase           string   `json:"votesDatabase"`
 	AllowedLaunchCommands   []string `json:"allowedLaunchCommands"`
@@ -57,7 +58,7 @@ func main() {
 	}
 
 	// Connect to Flashpoint database
-	fpDatabase, err = sql.Open("sqlite3", config.FPDatabase)
+	fpDatabase, err = sql.Open("sqlite3", config.FPDatabase+"?mode=ro") // read only open
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to open Flashpoint database")
 	}
@@ -112,8 +113,13 @@ func main() {
 	http.HandleFunc("/working", votesHandler)
 	http.HandleFunc("/broken", votesHandler)
 
+	// static fileserver
+	http.HandleFunc("/", rootHandler)
+	fs := http.FileServer(http.Dir("../static"))
+	http.Handle("/static/", http.StripPrefix("/static", fs))
+
 	server := &http.Server{
-		Addr:         "127.0.0.1:8985",
+		Addr:         config.Address,
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
@@ -123,6 +129,10 @@ func main() {
 	if err != nil {
 		log.Err(err).Msg("server error")
 	}
+}
+
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "../static/index.html")
 }
 
 // Return JSON-formatted info about a specific or random entry

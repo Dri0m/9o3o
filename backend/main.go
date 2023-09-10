@@ -260,12 +260,12 @@ func addVote(uuid string, working bool) error {
 		return sql.ErrNoRows
 	}
 
-	row := fpDatabase.QueryRow(fmt.Sprintf(`
-		SELECT * FROM (
-			SELECT game.id, coalesce(game_data.launchCommand, game.launchCommand) AS launchCommand
-			FROM game LEFT JOIN game_data ON game.id = game_data.gameId
-		) WHERE (%s) AND id = ?
-	`, fpWhere), uuid)
+	row := fpDatabase.QueryRow(`
+			SELECT game.id 
+			FROM game 
+			LEFT JOIN game_data ON game.id = game_data.gameId 
+			WHERE id = ?`
+			, uuid)
 	if err := row.Err(); err != nil {
 		return err
 	}

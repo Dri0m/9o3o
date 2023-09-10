@@ -1,7 +1,7 @@
 let entry = null;
 let gameZip = null;
 
-const oooo = 'https://api.ooooooooo.ooo';
+const oooo = 'https://ooooooooo.ooo';
 const zipURL = new URL('https://download.unstable.life/gib-roms/Games/');
 const legacyURL = new URL('https://infinity.unstable.life/Flashpoint/Legacy/htdocs/');
 

@@ -115,6 +115,7 @@ func main() {
 
 	// static fileserver
 	http.HandleFunc("/", rootHandler)
+	http.HandleFunc("/faq", faqHandler)
 	fs := http.FileServer(http.Dir("../static"))
 	http.Handle("/static/", http.StripPrefix("/static", fs))
 
@@ -133,7 +134,12 @@ func main() {
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "../static/index.html")
-	log.Debug().Msg("served root")
+	log.Debug().Msg("served /")
+}
+
+func faqHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "../static/faq/index.html")
+	log.Debug().Msg("served /faq")
 }
 
 // Return JSON-formatted info about a specific or random entry

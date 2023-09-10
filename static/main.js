@@ -5,6 +5,9 @@ const oooo = 'https://ooooooooo.ooo';
 const zipURL = new URL('https://download.unstable.life/gib-roms/Games/');
 const legacyURL = new URL('https://infinity.unstable.life/Flashpoint/Legacy/htdocs/');
 
+// Create copy of unmodified fetch method
+const _fetch = window.fetch;
+
 // Automatically convert URL objects to their redirected equivalents
 const redirect = async request => {
     let url = {
@@ -46,8 +49,6 @@ const players = [
         },
         
         async initialize() {
-            // Create copy of unmodified fetch method
-            const _fetch = window.fetch;
             // Intercept calls to fetch with code that replaces the requested URL with redirected equivalent
             window.fetch = async (resource, options) => {
                 // Get request as URL object

@@ -118,6 +118,7 @@ func main() {
 	http.HandleFunc("/faq", faqHandler)
 	fs := http.FileServer(http.Dir("../static"))
 	http.Handle("/static/", http.StripPrefix("/static", fs))
+	http.HandleFunc("/static/browse", oldBrowseRedirectHandler)
 
 	server := &http.Server{
 		Addr:         config.Address,
@@ -140,6 +141,11 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 func faqHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "../static/faq/index.html")
 	log.Debug().Msg("served /faq")
+}
+
+func oldBrowseRedirectHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "https://ooooooooo.ooo/browse", http.StatusMovedPermanently)
+	log.Debug().Msg("served /static/browse")
 }
 
 // Return JSON-formatted info about a specific or random entry

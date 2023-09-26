@@ -119,6 +119,7 @@ func main() {
 	fs := http.FileServer(http.Dir("../static"))
 	http.Handle("/static/", http.StripPrefix("/static", fs))
 	http.HandleFunc("/static/browse", oldBrowseRedirectHandler)
+	http.HandleFunc("/static/browse/", oldBrowseRedirectHandler)
 
 	server := &http.Server{
 		Addr:         config.Address,

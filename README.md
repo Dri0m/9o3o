@@ -11,6 +11,10 @@ This is an experimental web frontend for the [Flashpoint Archive](https://flashp
 * `flashpoint.sqlite` (place inside backend folder or define path in config.json)
 
 ### Instructions
+1. `go run main.go`, no magic here.
+
+Alternatively:
+
 1. Download the source code
 2. Open the Command Prompt in the `backend` folder
 3. Use the command `go build` to start compiling the executable

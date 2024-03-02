@@ -202,7 +202,7 @@ fetch(request).then(async response => {
     
     // Get zip if needed, and begin setting up player and redirector
     async function prepareEntry() {
-        if (entry.IsZipped) {
+        if (entry.isZipped) {
             // If the entry is zipped, retrieve zip from API and load into JSZip
             try {
                 gameZip = await new JSZip().loadAsync(await fetch(new URL(`${zipURL.toString()}${entry.uuid}-${entry.utcMicro}`)).then(r => r.blob()));

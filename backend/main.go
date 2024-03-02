@@ -235,23 +235,23 @@ func getEntry(uuid string) (*Entry, error) {
 	var tagsStr string
 
 	var dateAdded time.Time
-	var archiveState int
+	var activeDataId *int
 
 	fpRow := fpDatabase.QueryRow(fmt.Sprintf(`
-		SELECT id, title, tagsStr, launchCommand, dateAdded, archiveState FROM (
+		SELECT id, title, tagsStr, launchCommand, dateAdded, activeDataId FROM (
 			SELECT game.id, game.title, game.tagsStr,
 				coalesce(game_data.launchCommand, game.launchCommand) AS launchCommand,
 				coalesce(game_data.applicationPath, game.applicationPath) AS applicationPath,
-				game_data.dateAdded, game.archiveState
+				game_data.dateAdded, game.activeDataId
 			FROM game LEFT JOIN game_data ON game.id = game_data.gameId
 		) WHERE (%s) %s
 	`, fpWhere, suffix), uuid)
-	if err := fpRow.Scan(&entry.UUID, &entry.Title, &tagsStr, &entry.LaunchCommand, &dateAdded, &archiveState); err != nil {
+	if err := fpRow.Scan(&entry.UUID, &entry.Title, &tagsStr, &entry.LaunchCommand, &dateAdded, &activeDataId); err != nil {
 		return nil, err
 	}
 
 	entry.UTCMicro = strconv.FormatInt(dateAdded.UnixMicro(), 10)
-	if archiveState == 2 {
+	if activeDataId != nil {
 		entry.IsZipped = true
 	}
 

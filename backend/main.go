@@ -242,7 +242,7 @@ func getEntry(uuid string) (*Entry, error) {
 			SELECT game.id, game.title, game.tagsStr,
 				coalesce(game_data.launchCommand, game.launchCommand) AS launchCommand,
 				coalesce(game_data.applicationPath, game.applicationPath) AS applicationPath,
-				game_data.dateAdded, game_data.activeDataId
+				game_data.dateAdded, game.activeDataId
 			FROM game LEFT JOIN game_data ON game.id = game_data.gameId
 		) WHERE (%s) %s
 	`, fpWhere, suffix), uuid)

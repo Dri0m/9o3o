@@ -31,7 +31,7 @@ type Entry struct {
 	UUID          string `json:"uuid"`
 	Title         string `json:"title"`
 	LaunchCommand string `json:"launchCommand"`
-	UTCMicro      string `json:"utcMicro"`
+	UTCMilli      string `json:"utcMilli"`
 	Extreme       bool   `json:"extreme"`
 	VotesWorking  int    `json:"votesWorking"`
 	VotesBroken   int    `json:"votesBroken"`
@@ -250,7 +250,7 @@ func getEntry(uuid string) (*Entry, error) {
 		return nil, err
 	}
 
-	entry.UTCMicro = strconv.FormatInt(dateAdded.UnixMicro(), 10)
+	entry.UTCMilli = strconv.FormatInt(dateAdded.UnixMilli(), 10)
 	if activeDataId != nil {
 		entry.IsZipped = true
 	}

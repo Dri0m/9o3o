@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -30,10 +31,11 @@ type Entry struct {
 	UUID          string `json:"uuid"`
 	Title         string `json:"title"`
 	LaunchCommand string `json:"launchCommand"`
-	ArchivePath   string `json:"archivePath"`
+	UTCMicro      string `json:"utcMicro"`
 	Extreme       bool   `json:"extreme"`
 	VotesWorking  int    `json:"votesWorking"`
 	VotesBroken   int    `json:"votesBroken"`
+	IsZipped      bool   `json:"isZipped"`
 }
 
 var (
@@ -232,17 +234,25 @@ func getEntry(uuid string) (*Entry, error) {
 	var entry Entry
 	var tagsStr string
 
+	var dateAdded time.Time
+	var archiveState int
+
 	fpRow := fpDatabase.QueryRow(fmt.Sprintf(`
-		SELECT id, title, tagsStr, launchCommand, path FROM (
+		SELECT id, title, tagsStr, launchCommand, dateAdded, archiveState FROM (
 			SELECT game.id, game.title, game.tagsStr,
 				coalesce(game_data.launchCommand, game.launchCommand) AS launchCommand,
 				coalesce(game_data.applicationPath, game.applicationPath) AS applicationPath,
-				IFNULL(path, "") AS path
+				game_data.dateAdded, game.archiveState
 			FROM game LEFT JOIN game_data ON game.id = game_data.gameId
 		) WHERE (%s) %s
 	`, fpWhere, suffix), uuid)
-	if err := fpRow.Scan(&entry.UUID, &entry.Title, &tagsStr, &entry.LaunchCommand, &entry.ArchivePath); err != nil {
+	if err := fpRow.Scan(&entry.UUID, &entry.Title, &tagsStr, &entry.LaunchCommand, &dateAdded, &archiveState); err != nil {
 		return nil, err
+	}
+
+	entry.UTCMicro = strconv.FormatInt(dateAdded.UnixMicro(), 10)
+	if archiveState == 2 {
+		entry.IsZipped = true
 	}
 
 	entry.Extreme = false
@@ -254,7 +264,7 @@ func getEntry(uuid string) (*Entry, error) {
 	}
 
 	votesRow := votesDatabase.QueryRow("SELECT working, broken FROM votes WHERE id = ?", uuid)
-	if err := votesRow.Scan(&entry.VotesWorking, &entry.VotesBroken); err != sql.ErrNoRows && err != nil {
+	if err := votesRow.Scan(&entry.VotesWorking, &entry.VotesBroken); !errors.Is(err, sql.ErrNoRows) && err != nil {
 		return nil, err
 	}
 

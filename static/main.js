@@ -205,7 +205,7 @@ fetch(request).then(async response => {
         if (entry.IsZipped) {
             // If the entry is zipped, retrieve zip from API and load into JSZip
             try {
-                gameZip = await new JSZip().loadAsync(await fetch(new URL(zipURL.toString() + entry.uuid + "-" + entry.utcMicro)).then(r => r.blob()));
+                gameZip = await new JSZip().loadAsync(await fetch(new URL(`${zipURL.toString()}${entry.uuid}-${entry.utcMicro}`)).then(r => r.blob()));
             // If there are issues retrieving/loading the zip, display error message in place of player
             } catch {
                 let player = document.querySelector('.player');

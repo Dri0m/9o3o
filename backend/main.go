@@ -110,18 +110,22 @@ func main() {
 		fpWhere = strings.Join(whereArray, " OR ")
 	}
 
-	// Set up and start server
+	// api
 	http.HandleFunc("/get", getHandler)
 	http.HandleFunc("/working", votesHandler)
 	http.HandleFunc("/broken", votesHandler)
 
-	// static fileserver
+	// static pages
 	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/faq", faqHandler)
+
+	// legacy URL redirects
 	fs := http.FileServer(http.Dir("../static"))
 	http.Handle("/static/", NoCache(http.StripPrefix("/static", fs)))
 	http.HandleFunc("/static/browse", oldBrowseRedirectHandler)
 	http.HandleFunc("/static/browse/", oldBrowseRedirectHandler)
+	http.HandleFunc("/browse/", oldBrowseRedirectHandler)
+	http.HandleFunc("/browse", oldBrowseRedirectHandler)
 
 	server := &http.Server{
 		Addr:         config.Address,
@@ -147,7 +151,7 @@ func faqHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func oldBrowseRedirectHandler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "https://ooooooooo.ooo/browse", http.StatusMovedPermanently)
+	http.Redirect(w, r, "https://flashpointproject.github.io/flashpoint-database/", http.StatusMovedPermanently)
 	log.Debug().Msg("served /static/browse")
 }
 
@@ -234,7 +238,7 @@ func getEntry(uuid string) (*Entry, error) {
 	var entry Entry
 	var tagsStr string
 
-	var dateAdded time.Time
+	var dateAdded *time.Time
 	var activeDataId *int
 
 	fpRow := fpDatabase.QueryRow(fmt.Sprintf(`
@@ -250,7 +254,10 @@ func getEntry(uuid string) (*Entry, error) {
 		return nil, err
 	}
 
-	entry.UTCMilli = strconv.FormatInt(dateAdded.UnixMilli(), 10)
+	if dateAdded != nil {
+		entry.UTCMilli = strconv.FormatInt(dateAdded.UnixMilli(), 10)
+	}
+
 	if activeDataId != nil {
 		entry.IsZipped = true
 	}

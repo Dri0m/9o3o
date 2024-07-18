@@ -19,10 +19,14 @@ const redirect = async request => {
     
     // If the entry is zipped and requested file exists inside zip, return object URL of file 
     if (gameZip != null) {
-        let redirectedFile = gameZip.file(decodeURIComponent('content/' + url.original.hostname + url.original.pathname));
-        if (redirectedFile != null) {
-            url.redirect = URL.createObjectURL(await redirectedFile.async('blob'));
-            return url;
+        const cleanUrl = decodeURIComponent('content/' + url.original.hostname + url.original.pathname).toLowerCase();
+        const entry = Object.entries(gameZip.files).find(entry => entry[0].toLowerCase() === cleanUrl);
+        if (entry !== undefined) {
+            const file = entry[1];
+            if (file && !file.dir) {
+                url.redirect = URL.createObjectURL(await file.async('blob'));
+                return url;
+            }
         }
     }
     
@@ -206,7 +210,9 @@ fetch(request).then(async response => {
             // If the entry is zipped, retrieve zip from API and load into JSZip
             try {
                 gameZip = await new JSZip().loadAsync(await fetch(new URL(`${zipURL.toString()}${entry.uuid}-${entry.utcMilli}.zip`)).then(r => r.blob()));
-            // If there are issues retrieving/loading the zip, display error message in place of player
+                console.log('Loaded GameZIP');
+                window.gameZip = gameZip;
+                // If there are issues retrieving/loading the zip, display error message in place of player
             } catch {
                 let player = document.querySelector('.player');
                 player.style.fontSize = '12px';

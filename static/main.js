@@ -156,7 +156,7 @@ fetch(request).then(async response => {
     // If deserialization fails, replace page content with error message
     } catch {
         document.querySelector('.header').textContent = 'The specified entry is invalid.';
-        document.querySelectorAll('.content *:not(.header)').forEach(elem => elem.style.display = 'none');
+        document.querySelectorAll('.content *:not(.header, .footer, .navigation, .general, .general *)').forEach(elem => elem.style.display = 'none');
         return;
     }
     

@@ -289,7 +289,8 @@ func addVote(uuid string, working bool) error {
 			FROM game 
 			LEFT JOIN game_data ON game.id = game_data.gameId 
 			WHERE game.id = ?`, uuid)
-	if err := row.Err(); err != nil {
+	var result string
+	if err := row.Scan(&result); err != nil {
 		return err
 	}
 

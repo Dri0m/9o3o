@@ -1,0 +1,24 @@
+[
+	{
+		"name": "Flash",
+		"player": "Ruffle",
+		"extensions": [
+			".swf"
+		]
+	},
+	{
+		"name": "VRML",
+		"player": "X_ITE",
+		"extensions": [
+			".wrl",
+			".wrl.gz"
+		]
+	},
+	{
+		"name": "X3D",
+		"player": "X_ITE",
+		"extensions": [
+			".x3d"
+		]
+	}
+]

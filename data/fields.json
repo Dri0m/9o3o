@@ -1,0 +1,136 @@
+{
+	"game": {
+		"title": {
+			"name": "Title",
+			"type": "string"
+		},
+		"alternateTitles": {
+			"name": "Alternate Titles",
+			"type": "list"
+		},
+		"series": {
+			"name": "Series",
+			"type": "list"
+		},
+		"developer": {
+			"name": "Developer",
+			"type": "list"
+		},
+		"publisher": {
+			"name": "Publisher",
+			"type": "list"
+		},
+		"source": {
+			"name": "Source",
+			"type": "list"
+		},
+		"library": {
+			"name": "Library",
+			"type": "string",
+			"values": {
+				"arcade": {
+					"name": "Games"
+				},
+				"theatre": {
+					"name": "Animations"
+				}
+			}
+		},
+		"tags": {
+			"name": "Tags",
+			"type": "list"
+		},
+		"primaryPlatform": {
+			"name": "Platform",
+			"type": "string"
+		},
+		"platforms": {
+			"name": "Other Technologies",
+			"type": "list"
+		},
+		"playMode": {
+			"name": "Play Mode",
+			"type": "list"
+		},
+		"status": {
+			"name": "Status",
+			"type": "list"
+		},
+		"version": {
+			"name": "Version",
+			"type": "list"
+		},
+		"language": {
+			"name": "Language",
+			"type": "list"
+		},
+		"releaseDate": {
+			"name": "Release Date",
+			"type": "date"
+		},
+		"dateAdded": {
+			"name": "Date Added",
+			"type": "date"
+		},
+		"dateModified": {
+			"name": "Date Modified",
+			"type": "date"
+		},
+		"notes": {
+			"name": "Notes",
+			"type": "string"
+		},
+		"originalDescription": {
+			"name": "Original Description",
+			"type": "string"
+		},
+		"legacyApplicationPath": {
+			"name": "Application Path",
+			"type": "string"
+		},
+		"legacyLaunchCommand": {
+			"name": "Launch Command",
+			"type": "string"
+		},
+		"id": {
+			"name": "ID",
+			"type": "string"
+		}
+	},
+	"addApp": {
+		"name": {
+			"name": "Name",
+			"type": "string"
+		},
+		"applicationPath": {
+			"name": "Application Path",
+			"type": "string"
+		},
+		"launchCommand": {
+			"name": "Launch Command",
+			"type": "string"
+		},
+		"id": {
+			"name": "ID",
+			"type": "string"
+		}
+	},
+	"gameData": {
+		"dateAdded": {
+			"name": "Date Added",
+			"type": "date"
+		},
+		"applicationPath": {
+			"name": "Application Path",
+			"type": "string"
+		},
+		"launchCommand": {
+			"name": "Launch Command",
+			"type": "string"
+		},
+		"size": {
+			"name": "Size",
+			"type": "size"
+		}
+	}
+}

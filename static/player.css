@@ -15,6 +15,9 @@ body[data-dragging='true'] {
 .player-container {
 	position: relative;
 }
+.player-container:not(.loading) {
+	line-height: 0;
+}
 .loading {
 	width: 100%;
 	max-width: 480px;

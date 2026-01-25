@@ -39,7 +39,7 @@ const players = {
 			const response = await _fetch(redirectInfo.new, options);
 
 			// Spoof URL to bypass sitelocks
-			response.url = redirectInfo.old.href;
+			Object.defineProperty(response, 'url', { value: redirectInfo.old.href });
 
 			return response;
 		};

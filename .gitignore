@@ -1,0 +1,7 @@
+config.json
+server.log
+data/flashpoint.sqlite
+data/flashpoint.sqlite-shm
+data/flashpoint.sqlite-wal
+data/lastUpdated.txt
+.vscode/

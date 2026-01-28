@@ -379,7 +379,7 @@ function serverListen(addr) { logMessage(`server listening at ${addr.hostname} (
 // Define global variables
 function initGlobals() {
 	// Try to load config file
-	globalThis.config = Object.assign({}, JSON.parse(Deno.readTextFileSync('data/defaultConfig.json')));
+	globalThis.config = JSON.parse(Deno.readTextFileSync('data/defaultConfig.json'));
 	const configPath = flags['config'];
 	if (getPathInfo(configPath)?.isFile) {
 		Object.assign(config, JSON.parse(Deno.readTextFileSync(configPath)));

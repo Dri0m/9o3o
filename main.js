@@ -219,14 +219,15 @@ async function serverHandler(request) {
 			const searchFilter = fp.parseUserSearchInput(searchQuery).search.filter;
 			search.filter.subfilters.push(searchFilter);
 
-			// Get search result total and page offsets
-			// We perform the actual search once the offset is applied to the query
-			const [totalResults, searchIndex] = await Promise.all([fp.searchGamesTotal(search), fp.searchGamesIndex(search)]);
-			const totalPages = searchIndex.length > 0 ? searchIndex.length + 1 : 1;
+			// Get search result total and page info
+			// We perform the actual search once the query receives an offset
+			const totalResults = await fp.searchGamesTotal(search);
+			const totalPages = Math.max(1, Math.ceil(totalResults / config.pageSize));
 			const currentPage = Math.max(1, Math.min(totalPages, parseInt(params.get('page'), 10) || 1));
 
-			// Apply offset based on current page
+			// Apply offset to query based on current page
 			if (currentPage > 1) {
+				const searchIndex = await fp.searchGamesIndex(search, config.pageSize * (currentPage - 1));
 				const offset = searchIndex[currentPage - 2];
 				search.offset = {
 					value: offset.orderVal,

@@ -86,6 +86,68 @@ const players = {
 		// Build the sizer
 		await initSizer(container, width, height);
 	},
+	'DirPlayer': async (container) => {
+		// If possible, initialize player width and height with manually-provided definitions
+		const params = new URL(location).searchParams;
+		let width, height;
+		if (params.has('width')) {
+			const widthParam = parseInt(params.get('width'), 10);
+			if (!isNaN(widthParam))
+				width = widthParam;
+		}
+		if (params.has('height')) {
+			const heightParam = parseInt(params.get('height'), 10);
+			if (!isNaN(heightParam))
+				height = heightParam;
+		}
+
+		if (!width || width <= 1) width = 640;
+		if (!height || height <= 1) height = 480;
+
+		// Initialize Shockwave embed to be replaced by the polyfill
+		const embed = document.createElement('embed');
+		const srcExp = /^(".*?"|[^ ]*) /;
+		if (srcExp.test(entryData.launchCommand)) {
+			// Attempt to parse SPR launch command
+			embed.setAttribute('src', entryData.launchCommand.match(/^(".*?"|[^ ]*) /)[1].replace(/^"(.*)"$/, '$1'));
+			for (const extParam of entryData.launchCommand.matchAll(/--setExternalParam\s+"(.*?)"\s+"(.*?)"/g))
+				embed.setAttribute(extParam[1], extParam[2]);
+		}
+		else
+			embed.setAttribute('src', entryData.launchCommand);
+		embed.width = width;
+		embed.height = height;
+		container.appendChild(embed);
+
+		// Load the polyfill
+		await loadScript('/dirplayer-polyfill-0.3.0.js');
+
+		// Intercept fetches and return redirected response
+		window.fetch = async (resource, options) => {
+			// Get request as URL object
+			const resourceUrl = new URL(resource instanceof Request ? resource.url : resource);
+
+			// Don't redirect if the requested URL doesn't use HTTP
+			if (!resourceUrl.protocol.startsWith('http'))
+				return await _fetch(resource, options);
+
+			// Get redirected URL and fetch
+			const redirectInfo = await redirect(resourceUrl);
+			const response = await _fetch(redirectInfo.new, options);
+
+			// Spoof URL to bypass sitelocks
+			Object.defineProperty(response, 'url', { value: redirectInfo.old.href });
+
+			return response;
+		};
+
+		// Apply CSS to player
+		const player = container.querySelector('div');
+		player.className = 'player';
+
+		// Build the sizer
+		await initSizer(container, width, height);
+	},
 	'X_ITE': async (container) => {
 		// Load the script
 		await loadScript('https://create3000.github.io/code/x_ite/latest/x_ite.min.js');

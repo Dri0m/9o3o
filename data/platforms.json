@@ -7,6 +7,14 @@
 		]
 	},
 	{
+		"name": "Shockwave",
+		"player": "DirPlayer",
+		"extensions": [
+			".dcr",
+			".dir"
+		]
+	},
+	{
 		"name": "VRML",
 		"player": "X_ITE",
 		"extensions": [

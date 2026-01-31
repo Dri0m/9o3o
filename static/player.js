@@ -347,6 +347,7 @@ function initFileViewer() {
 		const file = gameZipData.files[path];
 		if (!path.startsWith('content/') || !file || file.dir) continue;
 		const shortPath = path.substring('content/'.length);
+		const pathLower = shortPath.toLowerCase();
 
 		// Create table row
 		const tableRow = document.createElement('div');
@@ -354,7 +355,7 @@ function initFileViewer() {
 
 		// Create path text
 		let tablePath;
-		if (supportedExts.some(ext => path.includes(ext))) {
+		if (supportedExts.some(ext => pathLower.includes(ext))) {
 			// Make path a direct link if file is supported
 			tablePath = document.createElement('a');
 			const pathUrl = new URL(location.origin);

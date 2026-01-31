@@ -6,13 +6,20 @@
 	</div>
 	<div class="header-small">How does it work?</div>
 	<div class="text">
-		9o3o uses the open-source emulators <a href="https://ruffle.rs/">Ruffle</a> and <a href="https://create3000.github.io/x_ite/">X_ITE</a> to enable the playback of Flash, VRML, and X3D content in modern browsers. It also employs a novel JavaScript redirector to intercept network requests in a similar fashion to Flashpoint's own redirector.
+		9o3o uses the following open-source emulators to enable playback of content from the archive:
+		<ul>
+			<li><a href="https://ruffle.rs/">Ruffle</a> for Flash content</li>
+			<li><a href="https://github.com/igorlira/dirplayer-rs">DirPlayer</a> for Shockwave content</li>
+			<li><a href="https://create3000.github.io/x_ite/">X_ITE</a> for VRML and X3D content</li>
+		</ul>
+		<a href="https://stuk.github.io/jszip/">JSZip</a> is used to access files inside of game data zips, which are served to the emulator through a novel redirector which intercepts network requests in a similar fashion to Flashpoint's own redirector.
 	</div>
 	<div class="header-small">An entry isn't working!</div>
 	<div class="text">
-		If the problem has to do with the emulator's playback of the entry, consider opening an issue in that emulator's GitHub repository:
+		If you are certain the problem has to do with the emulator's playback of the entry, consider opening an issue in that emulator's GitHub repository:
 		<ul>
 			<li><a href="https://github.com/ruffle-rs/ruffle/issues">Ruffle issue tracker</a></li>
+			<li><a href="https://github.com/igorlira/dirplayer-rs/issues">DirPlayer issue tracker</a></li>
 			<li><a href="https://github.com/create3000/x_ite/issues">X_ITE issue tracker</a></li>
 		</ul>
 		Otherwise, open an issue in 9o3o's own <a href="https://github.com/Dri0m/9o3o/issues">issue tracker</a>.

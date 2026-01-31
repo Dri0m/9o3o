@@ -42,6 +42,11 @@ body[data-dragging='true'] {
 	height: auto;
 }
 
+.shockwave div, .shockwave canvas {
+	width: 100% !important;
+	height: 100% !important;
+}
+
 .actions {
 	margin-top: 12px;
 	display: flex;

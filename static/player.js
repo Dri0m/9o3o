@@ -87,36 +87,22 @@ const players = {
 		await initSizer(container, width, height);
 	},
 	'DirPlayer': async (container) => {
-		// If possible, initialize player width and height with manually-provided definitions
-		const params = new URL(location).searchParams;
-		let width, height;
-		if (params.has('width')) {
-			const widthParam = parseInt(params.get('width'), 10);
-			if (!isNaN(widthParam))
-				width = widthParam;
-		}
-		if (params.has('height')) {
-			const heightParam = parseInt(params.get('height'), 10);
-			if (!isNaN(heightParam))
-				height = heightParam;
-		}
-
-		if (!width || width <= 1) width = 640;
-		if (!height || height <= 1) height = 480;
-
 		// Initialize Shockwave embed to be replaced by the polyfill
 		const embed = document.createElement('embed');
+		embed.width = 480;
+		embed.height = 360;
+
+		// Try to parse SPR launch command if necessary
 		const srcExp = /^(".*?"|[^ ]*) /;
 		if (srcExp.test(entryData.launchCommand)) {
-			// Attempt to parse SPR launch command
 			embed.setAttribute('src', entryData.launchCommand.match(/^(".*?"|[^ ]*) /)[1].replace(/^"(.*)"$/, '$1'));
 			for (const extParam of entryData.launchCommand.matchAll(/--setExternalParam\s+"(.*?)"\s+"(.*?)"/g))
 				embed.setAttribute(extParam[1], extParam[2]);
 		}
 		else
 			embed.setAttribute('src', entryData.launchCommand);
-		embed.width = width;
-		embed.height = height;
+
+		// Add embed to page
 		container.appendChild(embed);
 
 		// Load the polyfill
@@ -143,10 +129,36 @@ const players = {
 
 		// Apply CSS to player
 		const player = container.querySelector('div');
-		player.className = 'player';
+		player.classList.add('player', 'shockwave');
 
-		// Build the sizer
-		await initSizer(container, width, height);
+		// Observe when the player canvas is created
+		const canvasObserver = new MutationObserver((mutationList, observer) => {
+			for (const mutation of mutationList) {
+				if (mutation.type == 'attributes' && mutation.target.nodeName == 'CANVAS') {
+					// Stop observing mutations
+					observer.disconnect();
+
+					// Get manually-provided width and height if they exist, otherwise using canvas dimensions
+					const params = new URL(location).searchParams;
+					let [width, height] = [mutation.target.width, mutation.target.height];
+					if (params.has('width')) {
+						const widthParam = parseInt(params.get('width'), 10);
+						if (!isNaN(widthParam))
+							width = widthParam;
+					}
+					if (params.has('height')) {
+						const heightParam = parseInt(params.get('height'), 10);
+						if (!isNaN(heightParam))
+							height = heightParam;
+					}
+
+					// Build the sizer and get out of here
+					initSizer(container, width, height);
+					break;
+				}
+			}
+		});
+		canvasObserver.observe(player, { subtree: true, attributes: true });
 	},
 	'X_ITE': async (container) => {
 		// Load the script

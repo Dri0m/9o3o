@@ -45,10 +45,10 @@ async function serverHandler(request) {
 	// Log the request path (no IP address or query string)
 	logMessage('served /' + requestPath);
 
+	const idExp = /^[a-z\d]{8}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{12}$/;
 	switch (requestPath) {
 		case '': {
 			// Get entry ID
-			const idExp = /^[a-z\d]{8}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{12}$/;
 			let id;
 			if (params.has('id')) {
 				id = params.get('id');
@@ -338,6 +338,11 @@ async function serverHandler(request) {
 
 			// Serve supported platform info
 			return new Response(supportedPlatformsStr, { headers: responseHeaders });
+		}
+		case 'static': {
+			// Redirect old URLs
+			const id = requestUrl.search.substring(1);
+			return Response.redirect(requestUrl.origin + (idExp.test(id) ? '?id=' + id : ''));
 		}
 		default: {
 			// Serve static files

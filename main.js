@@ -201,10 +201,12 @@ async function serverHandler(request) {
 			search.limit = config.pageSize;
 
 			// Whitelist supported file extensions
-			const supportedFilter = newSubfilter();
-			supportedFilter.whitelist.launchCommand = supportedExts;
-			supportedFilter.matchAny = true;
-			search.filter.subfilters.push(supportedFilter);
+			if (params.get('everything') != 'true') {
+				const supportedFilter = newSubfilter();
+				supportedFilter.whitelist.launchCommand = supportedExts;
+				supportedFilter.matchAny = true;
+				search.filter.subfilters.push(supportedFilter);
+			}
 
 			// Filter NSFW entries if not explicitly specified otherwise
 			if (params.get('nsfw') != 'true') {
@@ -301,6 +303,7 @@ async function serverHandler(request) {
 			const browseHtml = buildHtml(templates.browse, {
 				'Query': sanitizeInject(searchQuery),
 				'NSFW_Checked': params.get('nsfw') == 'true' ? ' checked' : '',
+				'Everything_Checked': params.get('everything') == 'true' ? ' checked' : '',
 				'Total_Results': totalResults.toLocaleString('en-US'),
 				'Results_Per_Page': config.pageSize.toLocaleString('en-US'),
 				'Current_Page': currentPage.toLocaleString('en-US'),

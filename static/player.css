@@ -114,7 +114,14 @@ body[data-dragging='true'] {
 }
 .value ul {
 	margin: 0;
-	padding-left: 16px;
+	padding-left: 0;
+
+	list-style-type: none;
+}
+.value li::before {
+	margin: 0 6px 0 2px;
+
+	content: '\2022';
 }
 .path {
 	margin-top: 2px;

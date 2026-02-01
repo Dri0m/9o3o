@@ -106,7 +106,7 @@ const players = {
 		container.appendChild(embed);
 
 		// Load the polyfill
-		await loadScript('/dirplayer-polyfill-0.3.0.js');
+		await loadScript('http://dirplayer-rs.s3-website-us-west-2.amazonaws.com/dirplayer-polyfill-latest.js');
 
 		// Intercept fetches and return redirected response
 		window.fetch = async (resource, options) => {

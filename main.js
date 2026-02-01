@@ -31,6 +31,11 @@ async function serverHandler(request) {
 		'Cache-Control': 'max-age=14400',
 	});
 
+	// Get pathname of request URL with beginning and trailing slashes removed
+	const requestPath = requestUrl.pathname.replace(/^[/]+(.*?)[/]*$/, '$1');
+
+	// Initialize random links
+	let [randomLink, randomLinkNsfw] = ['/', '/?nsfw=true'];
 	// Build formatted date string of last update
 	const lastUpdate = new Intl.DateTimeFormat('en-US', {
 		dateStyle: 'long',
@@ -39,20 +44,41 @@ async function serverHandler(request) {
 		hour12: false,
 	}).format(new Date(lastUpdated));
 
-	const requestPath = requestUrl.pathname.replace(/^[/]+(.*?)[/]*$/, '$1');
-	const params = requestUrl.searchParams;
-
 	// Log the request path (no IP address or query string)
 	logMessage('served /' + requestPath);
 
+	const params = requestUrl.searchParams;
 	const idExp = /^[a-z\d]{8}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{12}$/;
 	switch (requestPath) {
 		case '': {
+			// Build query string for random links
+			const randomParams = new URLSearchParams();
+			if (params.get('query'))
+				randomParams.set('query', params.get('query'));
+			if (params.get('everything') == 'true')
+				randomParams.set('everything', 'true');
+
+			// Update random links
+			randomLink = '/' + (randomParams.size > 0 ? '?' + randomParams.toString() : '');
+			randomParams.set('nsfw', 'true');
+			randomLinkNsfw = '/?' + randomParams.toString();
+
+			// Return Not Found page if needed
+			const notFoundPage = () => new Response(buildHtml(templates.shell, {
+				'Title': 'Entry Not Found - 9o3o',
+				'Styles': '',
+				'Scripts': '',
+				'Content': 'The entry could not be found.',
+				'Random_Link': randomLink,
+				'Random_Link_NSFW': randomLinkNsfw,
+				'Last_Update': lastUpdate,
+			}), { headers: responseHeaders });
+
 			// Get entry ID
 			let id;
 			if (params.has('id')) {
 				id = params.get('id');
-				if (!idExp.test(id)) throw new BadRequestError();
+				if (!idExp.test(id)) return notFoundPage();
 			}
 			else {
 				// Backward compatibility with old ID query strings
@@ -64,8 +90,7 @@ async function serverHandler(request) {
 			let entry;
 			if (id) {
 				entry = await fp.findGame(id);
-				if (entry === null)
-					throw new NotFoundError();
+				if (entry === null) return notFoundPage();
 			}
 			else {
 				// If no ID is provided, search for random entry and disable caching
@@ -73,10 +98,12 @@ async function serverHandler(request) {
 				responseHeaders.delete('Cache-Control');
 
 				// Whitelist supported file extensions
-				const supportedFilter = newSubfilter();
-				supportedFilter.whitelist.launchCommand = supportedExts;
-				supportedFilter.matchAny = true;
-				search.filter.subfilters.push(supportedFilter);
+				if (params.get('everything') != 'true') {
+					const supportedFilter = newSubfilter();
+					supportedFilter.whitelist.launchCommand = supportedExts;
+					supportedFilter.matchAny = true;
+					search.filter.subfilters.push(supportedFilter);
+				}
 
 				// Filter NSFW entries if not explicitly specified otherwise
 				if (params.get('nsfw') != 'true') {
@@ -86,9 +113,20 @@ async function serverHandler(request) {
 					search.filter.subfilters.push(extremeFilter);
 				}
 
-				// Perform the search (TODO: Combine this into one query)
-				id = (await fp.searchGamesRandom(search, 1))[0].id;
-				entry = await fp.findGame(id);
+				// Add query if one is specified
+				if (params.get('query')) {
+					const searchFilter = fp.parseUserSearchInput(params.get('query')).search.filter;
+					search.filter.subfilters.push(searchFilter);
+				}
+
+				// Perform the search
+				const searchResults = await fp.searchGamesRandom(search, 1);
+				if (searchResults.length > 0) {
+					id = searchResults[0].id;
+					entry = await fp.findGame(id);
+				}
+				else
+					return notFoundPage();
 			}
 
 			// Check if a launch command contains a supported file extension
@@ -162,8 +200,9 @@ async function serverHandler(request) {
 				if (httpIndex != 0) launchCommand = launchCommand.substring(httpIndex);
 			}
 
+			// Get sanitized entry title and direct link to the entry
 			const title = sanitizeInject(entry.title);
-			const directLink = new URL(requestUrl);
+			const directLink = new URL(requestUrl.origin);
 			directLink.searchParams.set('id', entry.id);
 			for (const field of ['rev', 'path', 'width', 'height']) {
 				if (params.has(field))
@@ -189,6 +228,8 @@ async function serverHandler(request) {
 				'Styles': buildStyles('/player.css'),
 				'Scripts': buildScripts('/player.js'),
 				'Content': playerHtml,
+				'Random_Link': randomLink,
+				'Random_Link_NSFW': randomLinkNsfw,
 				'Last_Update': lastUpdate,
 			});
 
@@ -320,6 +361,8 @@ async function serverHandler(request) {
 				'Styles': buildStyles('/browse.css'),
 				'Scripts': buildScripts('/browse.js'),
 				'Content': browseHtml,
+				'Random_Link': randomLink,
+				'Random_Link_NSFW': randomLinkNsfw,
 				'Last_Update': lastUpdate,
 			});
 
@@ -333,6 +376,8 @@ async function serverHandler(request) {
 				'Styles': buildStyles('/faq.css'),
 				'Scripts': '',
 				'Content': templates.faq,
+				'Random_Link': randomLink,
+				'Random_Link_NSFW': randomLinkNsfw,
 				'Last_Update': lastUpdate,
 			}), { headers: responseHeaders });
 		}

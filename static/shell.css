@@ -1,3 +1,6 @@
+html {
+	scrollbar-color: #888 #000;
+}
 body {
 	min-height: 100vh;
 	margin: 0;

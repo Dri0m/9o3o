@@ -87,29 +87,51 @@ const players = {
 		await initSizer(container, width, height);
 	},
 	'DirPlayer': async (container) => {
-		// Initialize Shockwave embed to be replaced by the polyfill
-		const embed = document.createElement('embed');
-		embed.width = 480;
-		embed.height = 360;
+		// Observe when the player canvas is created and sized
+		const canvasObserver = new MutationObserver((mutationList, observer) => {
+			for (const mutation of mutationList) {
+				if (mutation.target.nodeName == 'CANVAS') {
+					// Stop observing mutations
+					observer.disconnect();
 
-		// Try to parse components of SPR launch command
-		const sprExps = [/(?:^|SPR.exe\s+)"(.*?)"/, /(?:^|SPR.exe\s+)([^ ]*)/];
-		for (const sprExp of sprExps) {
-			const sprMatch = entryData.launchCommand.match(sprExp);
-			if (sprMatch) {
-				embed.setAttribute('src', sprMatch[1]);
-				for (const extParam of entryData.launchCommand.matchAll(/--setExternalParam\s+"(.*?)"\s+"(.*?)"/g))
-					embed.setAttribute(extParam[1], extParam[2]);
-				break;
+					// Get manually-provided width and height if they exist, otherwise use canvas dimensions
+					const params = new URL(location).searchParams;
+					let [width, height] = [mutation.target.width, mutation.target.height];
+					if (params.has('width')) {
+						const widthParam = parseInt(params.get('width'), 10);
+						if (!isNaN(widthParam))
+							width = widthParam;
+					}
+					if (params.has('height')) {
+						const heightParam = parseInt(params.get('height'), 10);
+						if (!isNaN(heightParam))
+							height = heightParam;
+					}
+
+					// Build the sizer and get out of here
+					initSizer(container, width, height);
+					break;
+				}
 			}
-		}
+		});
 
-		// Otherwise, just use the full launch command
-		if (!embed.hasAttribute('src'))
-			embed.setAttribute('src', entryData.launchCommand);
+		// Observe when the player is created
+		const playerObserver = new MutationObserver((mutationList, observer) => {
+			for (const mutation of mutationList) {
+				if (mutation.addedNodes.length > 0 && mutation.addedNodes[0].nodeName == 'DIV') {
+					// Stop observing mutations
+					observer.disconnect();
 
-		// Add embed to page
-		container.appendChild(embed);
+					// Add CSS to player
+					const player = mutation.addedNodes[0];
+					player.classList.add('player', 'shockwave');
+
+					// Start observing when player canvas is created and sized
+					canvasObserver.observe(player, { subtree: true, attributes: true, attributeFilter: ['width'] });
+				}
+			}
+		});
+		playerObserver.observe(container, { childList: true });
 
 		// Load the polyfill
 		await loadScript('http://dirplayer-rs.s3-website-us-west-2.amazonaws.com/dirplayer-polyfill-latest.js');
@@ -133,38 +155,29 @@ const players = {
 			return response;
 		};
 
-		// Apply CSS to player
-		const player = container.querySelector('div');
-		player.classList.add('player', 'shockwave');
+		// Initialize Shockwave embed to be replaced by the polyfill
+		const embed = document.createElement('embed');
+		embed.width = 480;
+		embed.height = 360;
 
-		// Observe when the player canvas is created
-		const canvasObserver = new MutationObserver((mutationList, observer) => {
-			for (const mutation of mutationList) {
-				if (mutation.type == 'attributes' && mutation.target.nodeName == 'CANVAS') {
-					// Stop observing mutations
-					observer.disconnect();
-
-					// Get manually-provided width and height if they exist, otherwise using canvas dimensions
-					const params = new URL(location).searchParams;
-					let [width, height] = [mutation.target.width, mutation.target.height];
-					if (params.has('width')) {
-						const widthParam = parseInt(params.get('width'), 10);
-						if (!isNaN(widthParam))
-							width = widthParam;
-					}
-					if (params.has('height')) {
-						const heightParam = parseInt(params.get('height'), 10);
-						if (!isNaN(heightParam))
-							height = heightParam;
-					}
-
-					// Build the sizer and get out of here
-					initSizer(container, width, height);
-					break;
-				}
+		// Try to parse components of SPR launch command
+		const sprExps = [/(?:^|SPR.exe\s+)"(.*?)"/, /(?:^|SPR.exe\s+)([^ ]*)/];
+		for (const sprExp of sprExps) {
+			const sprMatch = entryData.launchCommand.match(sprExp);
+			if (sprMatch) {
+				embed.setAttribute('src', sprMatch[1]);
+				for (const extParam of entryData.launchCommand.matchAll(/--setExternalParam\s+"(.*?)"\s+"(.*?)"/g))
+					embed.setAttribute(extParam[1], extParam[2]);
+				break;
 			}
-		});
-		canvasObserver.observe(player, { subtree: true, attributes: true });
+		}
+
+		// Otherwise, just use the full launch command
+		if (!embed.hasAttribute('src'))
+			embed.setAttribute('src', entryData.launchCommand);
+
+		// Add embed to page
+		container.appendChild(embed);
 	},
 	'X_ITE': async (container) => {
 		// Load the script

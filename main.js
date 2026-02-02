@@ -196,8 +196,13 @@ async function serverHandler(request) {
 			}
 			else {
 				// Otherwise, remove any prefixes from the launch command
-				const httpIndex = launchCommand.indexOf('http://');
-				if (httpIndex != 0) launchCommand = launchCommand.substring(httpIndex);
+				let httpIndex = launchCommand.indexOf('http://');
+				if (httpIndex > 0) {
+					if (launchCommand[httpIndex - 1] == '"')
+						httpIndex -= 1;
+					if (httpIndex > 0)
+						launchCommand = launchCommand.substring(httpIndex);
+				}
 			}
 
 			// Get sanitized entry title and direct link to the entry

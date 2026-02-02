@@ -92,14 +92,20 @@ const players = {
 		embed.width = 480;
 		embed.height = 360;
 
-		// Try to parse SPR launch command if necessary
-		const srcExp = /^(".*?"|[^ ]*) /;
-		if (srcExp.test(entryData.launchCommand)) {
-			embed.setAttribute('src', entryData.launchCommand.match(/^(".*?"|[^ ]*) /)[1].replace(/^"(.*)"$/, '$1'));
-			for (const extParam of entryData.launchCommand.matchAll(/--setExternalParam\s+"(.*?)"\s+"(.*?)"/g))
-				embed.setAttribute(extParam[1], extParam[2]);
+		// Try to parse components of SPR launch command
+		const sprExps = [/(?:^|SPR.exe\s+)"(.*?)"/, /(?:^|SPR.exe\s+)([^ ]*)/];
+		for (const sprExp of sprExps) {
+			const sprMatch = entryData.launchCommand.match(sprExp);
+			if (sprMatch) {
+				embed.setAttribute('src', sprMatch[1]);
+				for (const extParam of entryData.launchCommand.matchAll(/--setExternalParam\s+"(.*?)"\s+"(.*?)"/g))
+					embed.setAttribute(extParam[1], extParam[2]);
+				break;
+			}
 		}
-		else
+
+		// Otherwise, just use the full launch command
+		if (!embed.hasAttribute('src'))
 			embed.setAttribute('src', entryData.launchCommand);
 
 		// Add embed to page

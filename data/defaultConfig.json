@@ -11,7 +11,7 @@
 	"fpfssUrl": "https://fpfss.unstable.life",
 	"imageServer": "https://infinity.unstable.life/images",
 	"zipServer": "https://download.unstable.life/gib-roms/Games",
-	"legacyServer": "https://infinity.unstable.life/Flashpoint/Legacy/htdocs",
+	"legacyServer": "https://archive.org/download/FP90Data/FP90Data.zip/htdocs",
 	"pageSize": 500,
 	"updateFrequency": 1440
 }

@@ -187,10 +187,12 @@ const players = {
 		const _createElement = document.createElement;
 		// Intercept calls to createElement and return <img> elements with redirected src attribute
 		document.createElement = function(...args) {
-			const observer = new MutationObserver(async records => {
-				// Only redirect requests that haven't already been redirected yet
-				const record = records.find(record => !['blob:', zipServerOrigin, legacyServerOrigin].some(prefix => record.target.src.startsWith(prefix)));
-				if (record) record.target.src = (await redirect(new URL(record.target.src))).new;
+			const observer = new MutationObserver(async mutationList => {
+				for (const mutation of mutationList) {
+					// Only redirect requests that haven't already been redirected yet
+					if (!['blob:', zipServerOrigin, legacyServerOrigin].some(prefix => mutation.target.src.startsWith(prefix)))
+						mutation.target.src = (await redirect(new URL(mutation.target.src))).new;
+				}
 			});
 
 			// Create the element

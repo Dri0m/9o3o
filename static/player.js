@@ -58,7 +58,7 @@ const players = {
 			allowScriptAccess: true
 		});
 
-		// If possible, initialize player width and height with manually-provided definitions
+		// Use custom player width/height if supplied
 		const params = new URL(location).searchParams;
 		let width, height;
 		if (params.has('width')) {
@@ -72,14 +72,14 @@ const players = {
 				height = heightParam;
 		}
 
-		// Set width and height to that of the SWF, if not already defined
+		// Otherwise, set width and height to that of the SWF
 		await new Promise(resolve => player.addEventListener('loadedmetadata', () => {
 			if (!width) width = player.ruffle().metadata.width;
 			if (!height) height = player.ruffle().metadata.height;
 			resolve();
 		}));
 
-		// Use defaults if set dimensions are invalid
+		// Use Flash Player defaults if width or height is invalid
 		if (width <= 1) width = 550;
 		if (height <= 1) height = 400;
 
@@ -94,17 +94,17 @@ const players = {
 					// Stop observing mutations
 					observer.disconnect();
 
-					// Get manually-provided width and height if they exist, otherwise use canvas dimensions
+					// Use custom player width/height if supplied, otherwise use canvas dimensions
 					const params = new URL(location).searchParams;
 					let [width, height] = [mutation.target.width, mutation.target.height];
 					if (params.has('width')) {
 						const widthParam = parseInt(params.get('width'), 10);
-						if (!isNaN(widthParam))
+						if (!isNaN(widthParam) && widthParam > 1)
 							width = widthParam;
 					}
 					if (params.has('height')) {
 						const heightParam = parseInt(params.get('height'), 10);
-						if (!isNaN(heightParam))
+						if (!isNaN(heightParam) && heightParam > 1)
 							height = heightParam;
 					}
 
@@ -209,23 +209,19 @@ const players = {
 		player.className = 'player';
 		container.appendChild(player);
 
-		// If possible, initialize player width and height with manually-provided definitions
+		// Use custom player width/height if supplied, otherwise use 900x600 since VRML/X3D files do not specify dimensions
 		const params = new URL(location).searchParams;
-		let width, height;
+		let [width, height] = [900, 600];
 		if (params.has('width')) {
 			const widthParam = parseInt(params.get('width'), 10);
-			if (!isNaN(widthParam))
+			if (!isNaN(widthParam) && widthParam > 1)
 				width = widthParam;
 		}
 		if (params.has('height')) {
 			const heightParam = parseInt(params.get('height'), 10);
-			if (!isNaN(heightParam))
+			if (!isNaN(heightParam) && heightParam > 1)
 				height = heightParam;
 		}
-
-		// Otherwise, use defaults since there is no way to identify the intended dimensions of a VRML/X3D file
-		if (!width || width <= 1) width = 900;
-		if (!height || height <= 1) height = 600;
 
 		// Build the sizer
 		await initSizer(container, width, height);

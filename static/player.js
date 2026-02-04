@@ -134,7 +134,7 @@ const players = {
 		playerObserver.observe(container, { childList: true });
 
 		// Load the polyfill
-		await loadScript('http://dirplayer-rs.s3-website-us-west-2.amazonaws.com/dirplayer-polyfill-latest.js');
+		await loadScript('https://dirplayer-rs.s3.us-west-2.amazonaws.com/dirplayer-polyfill-latest.js');
 
 		// Intercept fetches and return redirected response
 		window.fetch = async (resource, options) => {

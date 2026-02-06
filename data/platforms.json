@@ -11,7 +11,8 @@
 		"player": "DirPlayer",
 		"extensions": [
 			".dcr",
-			".dir"
+			".dir",
+			".dxr"
 		]
 	},
 	{

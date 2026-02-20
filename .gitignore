@@ -1,5 +1,7 @@
-/backend/backend.exe
-/backend/flashpoint.sqlite
-/backend/flashpoint.sqlite-shm
-/backend/flashpoint.sqlite-wal
-/backend/votes.sqlite
+config.json
+server.log
+data/flashpoint.sqlite
+data/flashpoint.sqlite-shm
+data/flashpoint.sqlite-wal
+data/lastUpdated.txt
+.vscode/

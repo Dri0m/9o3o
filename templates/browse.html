@@ -1,0 +1,34 @@
+<div class="content">
+	<form class="search" action="/browse" method="get">
+		<input class="textbox" type="text" name="query" value="{Query}" placeholder="Search 9o3o...">
+		<button class="submit" type="submit">Search</button>
+		<div class="nsfw">
+			<input class="checkbox" type="checkbox" name="nsfw" value="true" id="nsfw"{NSFW_Checked}>
+			<label class="label" for="nsfw">Include NSFW</label>
+		</div>
+		<input type="checkbox" name="everything" value="true"{Everything_Checked} hidden>
+	</form>
+	<div class="navigation">
+		<div class="tag-header">
+			<b>Tags:</b>
+		</div>
+		<div class="total">
+			<b>{Total_Results}</b> results ({Results_Per_Page} per page)
+		</div>
+		<div class="pages">
+			<a class="squish" href="{First_Page}">&lt;&lt;</a>
+			<a href="{Prev_Page}">&lt;</a>
+			<div>Page {Current_Page} of {Total_Pages}</div>
+			<a href="{Next_Page}">&gt;</a>
+			<a class="squish" href="{Last_Page}">&gt;&gt;</a>
+		</div>
+	</div>
+	<div class="browser">
+		<div class="sidebar">
+			{Tags}
+		</div>
+		<div class="results">
+			{Results}
+		</div>
+	</div>
+</div>

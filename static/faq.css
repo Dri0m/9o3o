@@ -1,0 +1,17 @@
+ul {
+	margin: 6px 0;
+	padding-left: 16px;
+}
+
+.content {
+	width: 640px;
+	margin: 16px;
+}
+
+.text:not(:last-of-type) {
+	margin-bottom: 16px;
+}
+
+.header-large {
+	margin-bottom: 24px;
+}

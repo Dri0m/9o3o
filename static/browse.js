@@ -9,9 +9,12 @@ const logoObserver = new IntersectionObserver(entries => {
 			const logo = `url("${result.dataset.logo}")`;
 			const screenshot = `url("${result.dataset.screenshot}")`;
 
-			// Show screenshot when hovering over logo
-			thumbnail.addEventListener('mouseover', () => { thumbnail.style.backgroundImage = screenshot; });
-			thumbnail.addEventListener('mouseout', () => { thumbnail.style.backgroundImage = logo; });
+			// Show screenshot when hovering over logo, unless it is an NSFW entry
+			if (result.dataset.extreme == 'false') {
+				thumbnail.addEventListener('mouseover', () => { thumbnail.style.backgroundImage = screenshot; });
+				thumbnail.addEventListener('mouseout', () => { thumbnail.style.backgroundImage = logo; });
+			}
+
 			thumbnail.style.backgroundImage = logo;
 		}
 	}

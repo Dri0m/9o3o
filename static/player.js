@@ -55,7 +55,9 @@ const players = {
 			// Set base URL to directory of launch command
 			base: entryData.launchCommand.substring(0, entryData.launchCommand.lastIndexOf('/') + 1),
 			// Allow entries that use ExternalInterface to work
-			allowScriptAccess: true
+			allowScriptAccess: true,
+			// Force disable autoplay on NSFW entries
+			autoplay: entryData.extreme == 'true' ? 'off' : 'auto',
 		});
 
 		// Use custom player width/height if supplied

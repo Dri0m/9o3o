@@ -152,6 +152,7 @@ body {
 .result {
 	width: 160px;
 	margin: 8px;
+	position: relative;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -163,9 +164,19 @@ body {
 	margin-bottom: 8px;
 	align-self: stretch;
 
+	background-color: #0004;
 	background-size: contain;
 	background-repeat: no-repeat;
 	background-position: center;
+}
+.result[data-extreme='true'] .thumbnail::after {
+	position: absolute;
+	top: 0;
+	right: 0;
+
+	font-size: 32px;
+	text-shadow: 0 0 4px #000;
+	content: '\1F51E';
 }
 .title {
 	word-break: break-word;

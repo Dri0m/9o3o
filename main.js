@@ -332,8 +332,11 @@ async function serverHandler(request) {
 				if (queryTagIndex != -1 && (queryTagIndex == 0 || searchQuery[queryTagIndex - 1] == ' '))
 					continue;
 
-				// Get URLs for filtered queries
 				const queryTagUrl = new URL(requestUrl.origin + requestUrl.pathname);
+				if (params.get('nsfw') == 'true')
+					queryTagUrl.searchParams.set('nsfw', 'true');
+
+				// Get URLs for filtered queries
 				const queryTagSpace = searchQuery != '' && !searchQuery.endsWith(' ') ? ' ' : '';
 				queryTagUrl.searchParams.set('query', searchQuery + queryTagSpace + queryTag);
 				const plusLink = queryTagUrl.href;

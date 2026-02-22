@@ -1,6 +1,7 @@
 let entryData, gameZipData;
 let zipServerOrigin, legacyServerOrigin;
 let supportedPlatforms, supportedExts;
+let playerName;
 
 // Query strings
 const params = new URL(location).searchParams;
@@ -22,7 +23,7 @@ const players = {
 		// If script cannot/should not be overridden, load it
 		const scriptUrl = 'https://unpkg.com/@ruffle-rs/ruffle';
 		if (!overrideScript)
-			await loadScript(scriptUrl);
+			await loadScript(scriptUrl, container);
 
 		// Intercept fetches and return redirected response
 		window.fetch = async (resource, options) => {
@@ -135,7 +136,7 @@ const players = {
 		playerObserver.observe(container, { childList: true });
 
 		// Load the polyfill
-		await loadScript('https://dirplayer-rs.s3.us-west-2.amazonaws.com/dirplayer-polyfill-latest.js');
+		await loadScript('https://dirplayer-rs.s3.us-west-2.amazonaws.com/dirplayer-polyfill-latest.js', container);
 
 		// Intercept fetches and return redirected response
 		window.fetch = async (resource, options) => {
@@ -182,7 +183,7 @@ const players = {
 	},
 	'X_ITE': async (container) => {
 		// Load the script
-		await loadScript('https://create3000.github.io/code/x_ite/latest/x_ite.min.js');
+		await loadScript('https://create3000.github.io/code/x_ite/latest/x_ite.min.js', container);
 
 		// Create copy of unmodified createElement method
 		const _createElement = document.createElement;
@@ -273,13 +274,12 @@ async function initPlayer(container) {
 	const launchCommandLower = entryData.launchCommand.toLowerCase();
 
 	// Identify player from launch command
-	let player;
 	if (!invalidLaunchCommand) {
 		const platform = supportedPlatforms.find(platform => platform.extensions.some(ext => launchCommandLower.includes(ext)));
 		if (!platform)
 			invalidLaunchCommand = true;
 		else
-			player = players[platform.player];
+			playerName = platform.player;
 	}
 
 	legacyServerOrigin = new URL(entryData.legacyServer).origin;
@@ -385,7 +385,7 @@ async function initPlayer(container) {
 	container.textContent = '';
 
 	// Add player to page and activate redirector
-	player(container);
+	players[playerName](container);
 }
 
 // Show entry files in the panel if zip is loaded
@@ -502,9 +502,16 @@ function togglePanel(container, moreInfo) {
 }
 
 // Fetch a script and return a promise that resolves when it is loaded
-function loadScript(url) {
+function loadScript(url, container = null) {
+	// If a container is supplied, assume a player script is being loaded and display a loading message for it
+	if (container) container.textContent = `Loading ${playerName}...`;
+
 	const script = document.createElement('script');
-	const scriptLoad = new Promise(resolve => script.addEventListener('load', resolve));
+	const scriptLoad = new Promise(resolve => script.addEventListener('load', () => {
+		// Clear the loading message once the script has been loaded
+		if (container) container.textContent = '';
+		resolve();
+	}));
 	script.src = url;
 	document.head.append(script);
 

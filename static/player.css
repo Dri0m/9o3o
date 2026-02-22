@@ -30,17 +30,17 @@ body[data-dragging='true'] {
 
 	background-color: #000;
 }
-.loading-text {
+.message {
 	text-align: center;
 	white-space: pre-wrap;
 	line-height: 1.5;
 }
-.loading-url {
+.message-url {
 	display: inline-block;
 
 	line-height: normal;
 }
-.loading-url b {
+.message-url b {
 	word-break: break-all;
 }
 

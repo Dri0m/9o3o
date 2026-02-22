@@ -2,6 +2,9 @@ let entryData, gameZipData;
 let zipServerOrigin, legacyServerOrigin;
 let supportedPlatforms, supportedExts;
 
+// Query strings
+const params = new URL(location).searchParams;
+
 // Copy of unmodified fetch method
 const _fetch = window.fetch;
 
@@ -55,13 +58,10 @@ const players = {
 			// Set base URL to directory of launch command
 			base: entryData.launchCommand.substring(0, entryData.launchCommand.lastIndexOf('/') + 1),
 			// Allow entries that use ExternalInterface to work
-			allowScriptAccess: true,
-			// Force disable autoplay on NSFW entries
-			autoplay: entryData.extreme == 'true' ? 'off' : 'auto',
+			allowScriptAccess: true
 		});
 
 		// Use custom player width/height if supplied
-		const params = new URL(location).searchParams;
 		let width, height;
 		if (params.has('width')) {
 			const widthParam = parseInt(params.get('width'), 10);
@@ -97,7 +97,6 @@ const players = {
 					observer.disconnect();
 
 					// Use custom player width/height if supplied, otherwise use canvas dimensions
-					const params = new URL(location).searchParams;
 					let [width, height] = [mutation.target.width, mutation.target.height];
 					if (params.has('width')) {
 						const widthParam = parseInt(params.get('width'), 10);
@@ -212,7 +211,6 @@ const players = {
 		container.append(player);
 
 		// Use custom player width/height if supplied, otherwise use 900x600 since VRML/X3D files do not specify dimensions
-		const params = new URL(location).searchParams;
 		let [width, height] = [900, 600];
 		if (params.has('width')) {
 			const widthParam = parseInt(params.get('width'), 10);
@@ -286,28 +284,43 @@ async function initPlayer(container) {
 
 	legacyServerOrigin = new URL(entryData.legacyServer).origin;
 
-	const loadingText = document.createElement('div');
-	loadingText.className = 'loading-text';
-	container.append(loadingText);
+	const message = document.createElement('div');
+	message.className = 'message';
+	container.append(message);
+
+	// Display a warning containing the entry's extreme tags if it is NSFW
+	if (entryData.extremeTags != '') {
+		const extremeTagList = document.createElement('b');
+		extremeTagList.textContent = entryData.extremeTags;
+		message.append('This entry contains the following extreme tags:\n\n', extremeTagList, '\n\nClick anywhere to continue.');
+
+		// Wait for the container to be clicked before continuing
+		await new Promise(resolve => {
+			container.addEventListener('click', () => {
+				message.textContent = '';
+				resolve();
+			}, { once: true });
+		});
+	}
 
 	if (entryData.gameZip != '') {
 		zipServerOrigin = new URL(entryData.gameZip).origin;
 
 		const launchCommandText = document.createElement('span');
 		const launchCommandBold = document.createElement('b');
-		launchCommandText.className = 'loading-url';
+		launchCommandText.className = 'message-url';
 		launchCommandBold.textContent = entryData.launchCommand || 'undefined';
 		launchCommandText.append(launchCommandBold);
 
 		const gameZipText = document.createElement('span');
 		const gameZipBold = document.createElement('b');
-		gameZipText.className = 'loading-url';
+		gameZipText.className = 'message-url';
 		gameZipBold.textContent = entryData.gameZip;
 		gameZipText.append(gameZipBold, '...');
 
 		// Display loading text with bold and special wrapping applied to launch command and zip URL
 		const percentageText = document.createTextNode('0');
-		loadingText.append('Loading ', launchCommandText, ' from ', gameZipText, '\n\n', percentageText, '%');
+		message.append('Loading ', launchCommandText, ' from ', gameZipText, '\n\n', percentageText, '%');
 
 		// Fetch zip and load JSZip script to interpret it
 		const [gameZip] = await Promise.all([
@@ -329,7 +342,7 @@ async function initPlayer(container) {
 		]);
 
 		if (!gameZip) {
-			loadingText.textContent = 'Failed to download game data.';
+			message.textContent = 'Failed to download game data.';
 			return;
 		}
 
@@ -340,7 +353,7 @@ async function initPlayer(container) {
 		}
 		catch (error) {
 			console.error(error);
-			loadingText.textContent = 'Failed to open game data.';
+			message.textContent = 'Failed to open game data.';
 			return;
 		}
 	}
@@ -349,22 +362,22 @@ async function initPlayer(container) {
 
 		const launchCommandText = document.createElement('span');
 		const launchCommandBold = document.createElement('b');
-		launchCommandText.className = 'loading-url';
+		launchCommandText.className = 'message-url';
 		launchCommandBold.textContent = entryData.launchCommand || 'undefined';
 		launchCommandText.append(launchCommandBold, '...');
 
 		// Display static loading message for legacy entry
-		loadingText.append('Loading ', launchCommandText);
+		message.append('Loading ', launchCommandText);
 	}
 	else {
 		// Abort legacy entry immediately if launch command is invalid
-		loadingText.textContent = 'The launch command is invalid.';
+		message.textContent = 'The launch command is invalid.';
 		return;
 	}
 
 	// Abort zipped entry after loading the zip if launch command is invalid, allowing the zip to be browsed
 	if (invalidLaunchCommand) {
-		loadingText.textContent = 'The launch command is invalid.\n\nCheck the info panel for supported files.';
+		message.textContent = 'The launch command is invalid.\n\nCheck the info panel for supported files.';
 		return;
 	}
 
@@ -377,8 +390,6 @@ async function initPlayer(container) {
 
 // Show entry files in the panel if zip is loaded
 function initFileViewer() {
-	const params = new URL(location).searchParams;
-
 	// Create table header
 	const filesHeader = document.createElement('div');
 	filesHeader.className = 'header-small';

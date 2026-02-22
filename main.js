@@ -206,8 +206,8 @@ async function serverHandler(request) {
 			}
 
 			// Get sanitized entry title and direct link to the entry
-			const isExtreme = entry.tags.some(tag => extremeTags.includes(tag));
-			const title = (isExtreme ? '&#x1F51E; ' : '') + sanitizeInject(entry.title);
+			const entryExtremeTags = entry.tags.filter(tag => extremeTags.includes(tag));
+			const title = (entryExtremeTags.length > 0 ? '&#x1F51E; ' : '') + sanitizeInject(entry.title);
 			const directLink = new URL(requestUrl.origin);
 			directLink.searchParams.set('id', entry.id);
 			for (const field of ['rev', 'path', 'width', 'height']) {
@@ -221,7 +221,7 @@ async function serverHandler(request) {
 				'Legacy_Server': config.legacyServer,
 				'Game_Zip': gameZip,
 				'Launch_Command': sanitizeInject(launchCommand),
-				'Is_Extreme': isExtreme.toString(),
+				'Extreme_Tags': entryExtremeTags.join(', '),
 				'ID': entry.id,
 				'Direct_Link': directLink.href,
 				'Info_Table': buildTable(entry, entryFields.game),

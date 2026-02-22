@@ -47,7 +47,7 @@ const players = {
 		// Create player instance and add to page
 		const player = window.RufflePlayer.newest().createPlayer();
 		player.className = 'player';
-		container.appendChild(player);
+		container.append(player);
 
 		// Load the SWF
 		player.ruffle().load({
@@ -179,7 +179,7 @@ const players = {
 			embed.setAttribute('src', entryData.launchCommand);
 
 		// Add embed to page
-		container.appendChild(embed);
+		container.append(embed);
 	},
 	'X_ITE': async (container) => {
 		// Load the script
@@ -209,7 +209,7 @@ const players = {
 		// Create player instance and add to page
 		const player = X3D.createBrowser();
 		player.className = 'player';
-		container.appendChild(player);
+		container.append(player);
 
 		// Use custom player width/height if supplied, otherwise use 900x600 since VRML/X3D files do not specify dimensions
 		const params = new URL(location).searchParams;
@@ -286,8 +286,28 @@ async function initPlayer(container) {
 
 	legacyServerOrigin = new URL(entryData.legacyServer).origin;
 
+	const loadingText = document.createElement('div');
+	loadingText.className = 'loading-text';
+	container.append(loadingText);
+
 	if (entryData.gameZip != '') {
 		zipServerOrigin = new URL(entryData.gameZip).origin;
+
+		const launchCommandText = document.createElement('span');
+		const launchCommandBold = document.createElement('b');
+		launchCommandText.className = 'loading-url';
+		launchCommandBold.textContent = entryData.launchCommand || 'undefined';
+		launchCommandText.append(launchCommandBold);
+
+		const gameZipText = document.createElement('span');
+		const gameZipBold = document.createElement('b');
+		gameZipText.className = 'loading-url';
+		gameZipBold.textContent = entryData.gameZip;
+		gameZipText.append(gameZipBold, '...');
+
+		// Display loading text with bold and special wrapping applied to launch command and zip URL
+		const percentageText = document.createTextNode('0');
+		loadingText.append('Loading ', launchCommandText, ' from ', gameZipText, '\n\n', percentageText, '%');
 
 		// Fetch zip and load JSZip script to interpret it
 		const [gameZip] = await Promise.all([
@@ -296,9 +316,8 @@ async function initPlayer(container) {
 				xhr.responseType = 'blob';
 
 				xhr.addEventListener('progress', event => {
-					// Display loading text
-					const percentage = Math.round(event.loaded / event.total * 100);
-					container.textContent = `Loading ${entryData.launchCommand || 'undefined'} from ${entryData.gameZip}...\n\n${percentage}%`;
+					// Update loading percentage
+					percentageText.nodeValue = Math.round(event.loaded / event.total * 100);
 				});
 				xhr.addEventListener('load', () => resolve(xhr.response));
 				xhr.addEventListener('error', () => resolve(null));
@@ -310,7 +329,7 @@ async function initPlayer(container) {
 		]);
 
 		if (!gameZip) {
-			container.textContent = 'Failed to download game data.';
+			loadingText.textContent = 'Failed to download game data.';
 			return;
 		}
 
@@ -321,24 +340,31 @@ async function initPlayer(container) {
 		}
 		catch (error) {
 			console.error(error);
-			container.textContent = 'Failed to open game data.';
+			loadingText.textContent = 'Failed to open game data.';
 			return;
 		}
 	}
 	else if (!invalidLaunchCommand) {
-		// Display static loading message for legacy entry
 		zipServerOrigin = '';
-		container.textContent = `Loading ${entryData.launchCommand}...`;
+
+		const launchCommandText = document.createElement('span');
+		const launchCommandBold = document.createElement('b');
+		launchCommandText.className = 'loading-url';
+		launchCommandBold.textContent = entryData.launchCommand || 'undefined';
+		launchCommandText.append(launchCommandBold, '...');
+
+		// Display static loading message for legacy entry
+		loadingText.append('Loading ', launchCommandText);
 	}
 	else {
 		// Abort legacy entry immediately if launch command is invalid
-		container.textContent = 'The launch command is invalid.';
+		loadingText.textContent = 'The launch command is invalid.';
 		return;
 	}
 
 	// Abort zipped entry after loading the zip if launch command is invalid, allowing the zip to be browsed
 	if (invalidLaunchCommand) {
-		container.textContent = 'The launch command is invalid.\n\nCheck the info panel for supported files.';
+		loadingText.textContent = 'The launch command is invalid.\n\nCheck the info panel for supported files.';
 		return;
 	}
 
@@ -390,14 +416,13 @@ function initFileViewer() {
 		tablePath.textContent = shortPath;
 
 		// Add path to row and row to table
-		tableRow.appendChild(tablePath);
-		filesTable.appendChild(tableRow);
+		tableRow.append(tablePath);
+		filesTable.append(tableRow);
 	}
 
 	// Add table to panel
 	const panel = document.querySelector('.panel');
-	panel.appendChild(filesHeader);
-	panel.appendChild(filesTable);
+	panel.append(filesHeader, filesTable);
 }
 
 // Build an aspect ratio-maintaining image element to properly scale player
@@ -415,7 +440,7 @@ async function initSizer(container, width, height) {
 	sizer.src = URL.createObjectURL(blob);
 
 	// Add sizer to page
-	container.appendChild(sizer);
+	container.append(sizer);
 
 	// Prevent player from exceeding width of content and activate sizer
 	container.style.maxWidth = width + 'px';
@@ -470,7 +495,7 @@ function loadScript(url) {
 	const script = document.createElement('script');
 	const scriptLoad = new Promise(resolve => script.addEventListener('load', resolve));
 	script.src = url;
-	document.head.appendChild(script);
+	document.head.append(script);
 
 	return scriptLoad;
 }

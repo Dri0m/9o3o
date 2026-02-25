@@ -1,6 +1,10 @@
 let entryData, gameZipData;
 let zipServerOrigin, legacyServerOrigin;
 let supportedPlatforms, supportedExts;
+let playerName;
+
+// Query strings
+const params = new URL(location).searchParams;
 
 // Copy of unmodified fetch method
 const _fetch = window.fetch;
@@ -19,7 +23,7 @@ const players = {
 		// If script cannot/should not be overridden, load it
 		const scriptUrl = 'https://unpkg.com/@ruffle-rs/ruffle';
 		if (!overrideScript)
-			await loadScript(scriptUrl);
+			await loadScript(scriptUrl, container);
 
 		// Intercept fetches and return redirected response
 		window.fetch = async (resource, options) => {
@@ -47,7 +51,7 @@ const players = {
 		// Create player instance and add to page
 		const player = window.RufflePlayer.newest().createPlayer();
 		player.className = 'player';
-		container.appendChild(player);
+		container.append(player);
 
 		// Load the SWF
 		player.ruffle().load({
@@ -59,7 +63,6 @@ const players = {
 		});
 
 		// Use custom player width/height if supplied
-		const params = new URL(location).searchParams;
 		let width, height;
 		if (params.has('width')) {
 			const widthParam = parseInt(params.get('width'), 10);
@@ -95,7 +98,6 @@ const players = {
 					observer.disconnect();
 
 					// Use custom player width/height if supplied, otherwise use canvas dimensions
-					const params = new URL(location).searchParams;
 					let [width, height] = [mutation.target.width, mutation.target.height];
 					if (params.has('width')) {
 						const widthParam = parseInt(params.get('width'), 10);
@@ -134,7 +136,7 @@ const players = {
 		playerObserver.observe(container, { childList: true });
 
 		// Load the polyfill
-		await loadScript('https://dirplayer-rs.s3.us-west-2.amazonaws.com/dirplayer-polyfill-latest.js');
+		await loadScript('https://dirplayer-rs.s3.us-west-2.amazonaws.com/dirplayer-polyfill-latest.js', container);
 
 		// Intercept fetches and return redirected response
 		window.fetch = async (resource, options) => {
@@ -177,11 +179,11 @@ const players = {
 			embed.setAttribute('src', entryData.launchCommand);
 
 		// Add embed to page
-		container.appendChild(embed);
+		container.append(embed);
 	},
 	'X_ITE': async (container) => {
 		// Load the script
-		await loadScript('https://create3000.github.io/code/x_ite/latest/x_ite.min.js');
+		await loadScript('https://create3000.github.io/code/x_ite/latest/x_ite.min.js', container);
 
 		// Create copy of unmodified createElement method
 		const _createElement = document.createElement;
@@ -207,10 +209,9 @@ const players = {
 		// Create player instance and add to page
 		const player = X3D.createBrowser();
 		player.className = 'player';
-		container.appendChild(player);
+		container.append(player);
 
 		// Use custom player width/height if supplied, otherwise use 900x600 since VRML/X3D files do not specify dimensions
-		const params = new URL(location).searchParams;
 		let [width, height] = [900, 600];
 		if (params.has('width')) {
 			const widthParam = parseInt(params.get('width'), 10);
@@ -273,19 +274,53 @@ async function initPlayer(container) {
 	const launchCommandLower = entryData.launchCommand.toLowerCase();
 
 	// Identify player from launch command
-	let player;
 	if (!invalidLaunchCommand) {
 		const platform = supportedPlatforms.find(platform => platform.extensions.some(ext => launchCommandLower.includes(ext)));
 		if (!platform)
 			invalidLaunchCommand = true;
 		else
-			player = players[platform.player];
+			playerName = platform.player;
 	}
 
 	legacyServerOrigin = new URL(entryData.legacyServer).origin;
 
+	const message = document.createElement('div');
+	message.className = 'message';
+	container.append(message);
+
+	// Display a warning containing the entry's extreme tags if it is NSFW
+	if (entryData.extremeTags != '') {
+		const extremeTagList = document.createElement('b');
+		extremeTagList.textContent = entryData.extremeTags;
+		message.append('This entry contains the following extreme tags:\n\n', extremeTagList, '\n\nClick anywhere to continue.');
+
+		// Wait for the container to be clicked before continuing
+		await new Promise(resolve => {
+			container.addEventListener('click', () => {
+				message.textContent = '';
+				resolve();
+			}, { once: true });
+		});
+	}
+
 	if (entryData.gameZip != '') {
 		zipServerOrigin = new URL(entryData.gameZip).origin;
+
+		const launchCommandText = document.createElement('span');
+		const launchCommandBold = document.createElement('b');
+		launchCommandText.className = 'message-url';
+		launchCommandBold.textContent = entryData.launchCommand || 'undefined';
+		launchCommandText.append(launchCommandBold);
+
+		const gameZipText = document.createElement('span');
+		const gameZipBold = document.createElement('b');
+		gameZipText.className = 'message-url';
+		gameZipBold.textContent = entryData.gameZip;
+		gameZipText.append(gameZipBold, '...');
+
+		// Display loading text with bold and special wrapping applied to launch command and zip URL
+		const percentageText = document.createTextNode('0');
+		message.append('Loading ', launchCommandText, ' from ', gameZipText, '\n\n', percentageText, '%');
 
 		// Fetch zip and load JSZip script to interpret it
 		const [gameZip] = await Promise.all([
@@ -294,9 +329,8 @@ async function initPlayer(container) {
 				xhr.responseType = 'blob';
 
 				xhr.addEventListener('progress', event => {
-					// Display loading text
-					const percentage = Math.round(event.loaded / event.total * 100);
-					container.textContent = `Loading ${entryData.launchCommand || 'undefined'} from ${entryData.gameZip}...\n\n${percentage}%`;
+					// Update loading percentage
+					percentageText.nodeValue = Math.round(event.loaded / event.total * 100);
 				});
 				xhr.addEventListener('load', () => resolve(xhr.response));
 				xhr.addEventListener('error', () => resolve(null));
@@ -308,7 +342,7 @@ async function initPlayer(container) {
 		]);
 
 		if (!gameZip) {
-			container.textContent = 'Failed to download game data.';
+			message.textContent = 'Failed to download game data.';
 			return;
 		}
 
@@ -319,24 +353,31 @@ async function initPlayer(container) {
 		}
 		catch (error) {
 			console.error(error);
-			container.textContent = 'Failed to open game data.';
+			message.textContent = 'Failed to open game data.';
 			return;
 		}
 	}
 	else if (!invalidLaunchCommand) {
-		// Display static loading message for legacy entry
 		zipServerOrigin = '';
-		container.textContent = `Loading ${entryData.launchCommand}...`;
+
+		const launchCommandText = document.createElement('span');
+		const launchCommandBold = document.createElement('b');
+		launchCommandText.className = 'message-url';
+		launchCommandBold.textContent = entryData.launchCommand || 'undefined';
+		launchCommandText.append(launchCommandBold, '...');
+
+		// Display static loading message for legacy entry
+		message.append('Loading ', launchCommandText);
 	}
 	else {
 		// Abort legacy entry immediately if launch command is invalid
-		container.textContent = 'The launch command is invalid.';
+		message.textContent = 'The launch command is invalid.';
 		return;
 	}
 
 	// Abort zipped entry after loading the zip if launch command is invalid, allowing the zip to be browsed
 	if (invalidLaunchCommand) {
-		container.textContent = 'The launch command is invalid.\n\nCheck the info panel for supported files.';
+		message.textContent = 'The launch command is invalid.\n\nCheck the info panel for supported files.';
 		return;
 	}
 
@@ -344,13 +385,11 @@ async function initPlayer(container) {
 	container.textContent = '';
 
 	// Add player to page and activate redirector
-	player(container);
+	players[playerName](container);
 }
 
 // Show entry files in the panel if zip is loaded
 function initFileViewer() {
-	const params = new URL(location).searchParams;
-
 	// Create table header
 	const filesHeader = document.createElement('div');
 	filesHeader.className = 'header-small';
@@ -388,14 +427,13 @@ function initFileViewer() {
 		tablePath.textContent = shortPath;
 
 		// Add path to row and row to table
-		tableRow.appendChild(tablePath);
-		filesTable.appendChild(tableRow);
+		tableRow.append(tablePath);
+		filesTable.append(tableRow);
 	}
 
 	// Add table to panel
 	const panel = document.querySelector('.panel');
-	panel.appendChild(filesHeader);
-	panel.appendChild(filesTable);
+	panel.append(filesHeader, filesTable);
 }
 
 // Build an aspect ratio-maintaining image element to properly scale player
@@ -413,7 +451,7 @@ async function initSizer(container, width, height) {
 	sizer.src = URL.createObjectURL(blob);
 
 	// Add sizer to page
-	container.appendChild(sizer);
+	container.append(sizer);
 
 	// Prevent player from exceeding width of content and activate sizer
 	container.style.maxWidth = width + 'px';
@@ -464,11 +502,18 @@ function togglePanel(container, moreInfo) {
 }
 
 // Fetch a script and return a promise that resolves when it is loaded
-function loadScript(url) {
+function loadScript(url, container = null) {
+	// If a container is supplied, assume a player script is being loaded and display a loading message for it
+	if (container) container.textContent = `Loading ${playerName}...`;
+
 	const script = document.createElement('script');
-	const scriptLoad = new Promise(resolve => script.addEventListener('load', resolve));
+	const scriptLoad = new Promise(resolve => script.addEventListener('load', () => {
+		// Clear the loading message once the script has been loaded
+		if (container) container.textContent = '';
+		resolve();
+	}));
 	script.src = url;
-	document.head.appendChild(script);
+	document.head.append(script);
 
 	return scriptLoad;
 }

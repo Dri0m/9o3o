@@ -475,10 +475,17 @@ function initGlobals() {
 
 // Load/update/build Flashpoint database
 async function initDatabase() {
+	// Check if a new database will need to be created
+	const createNew = !getPathInfo(config.databaseFile)?.isFile;
+
+	// Load the database
+	globalThis.fp = new FlashpointArchive();
+	fp.loadDatabase(config.databaseFile);
+
 	// Get time of last update
 	globalThis.updateInProgress = false;
 	globalThis.lastUpdated = '1970-01-01';
-	if (getPathInfo('data/lastUpdated.txt')?.isFile) {
+	if (!createNew && getPathInfo('data/lastUpdated.txt')?.isFile) {
 		const lastUpdatedText = Deno.readTextFileSync('data/lastUpdated.txt');
 		if (!isNaN(Date.parse(lastUpdatedText)))
 			lastUpdated = lastUpdatedText;
@@ -486,22 +493,18 @@ async function initDatabase() {
 
 	if (flags['update']) {
 		// Update and exit if --update flag is passed
-		await updateDatabase();
+		await updateDatabase(createNew);
 		Deno.exit(0);
 	}
-	else if (!getPathInfo(config.databaseFile)?.isFile) {
-		// If database doesn't exist, initiate database build alongside server
+	else if (createNew) {
+		// If database was just created, start database build alongside server
 		logMessage('no database found, starting database build');
-		updateDatabase();
+		updateDatabase(createNew);
 	}
-
-	// Load the database
-	globalThis.fp = new FlashpointArchive();
-	fp.loadDatabase(config.databaseFile);
 
 	// Update the database on a set interval
 	if (config.updateFrequency > 0)
-		globalThis.updateInterval = setInterval(updateDatabase, config.updateFrequency * 60 * 1000);
+		globalThis.updateInterval = setInterval(() => updateDatabase(), config.updateFrequency * 60 * 1000);
 }
 
 // Start the web server
@@ -529,21 +532,16 @@ function initServer() {
 
 // Create or update a database file
 // Adapted from https://github.com/FlashpointProject/FPA-Rust/blob/master/crates/flashpoint-database-builder/src/main.rs
-async function updateDatabase() {
+async function updateDatabase(createNew = false) {
 	if (updateInProgress) return;
 	updateInProgress = true;
 
 	// Find out if we're creating a new database or updating an existing one
-	const createNew = !getPathInfo(config.databaseFile)?.isFile;
 	logMessage(`${createNew ? 'building new' : 'updating'} database...`);
 
 	// Get old and new update times
 	const oldLastUpdated = lastUpdated;
 	const newLastUpdated = new Date().toISOString();
-
-	// Initialize new database
-	const fp = new FlashpointArchive();
-	fp.loadDatabase(config.databaseFile);
 
 	// Fetch and apply platforms
 	const platsRes = await fetchFromFpfss(`platforms?after=${oldLastUpdated}`);

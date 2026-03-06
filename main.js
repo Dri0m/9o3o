@@ -93,40 +93,51 @@ async function serverHandler(request) {
 				if (entry === null) return notFoundPage();
 			}
 			else {
-				// If no ID is provided, search for random entry and disable caching
-				const search = fp.parseUserSearchInput('').search;
+				// If no ID is provided, pick a random entry and disable caching
 				responseHeaders.delete('Cache-Control');
 
-				// Whitelist supported file extensions
-				if (params.get('everything') != 'true') {
-					const supportedFilter = newSubfilter();
-					supportedFilter.whitelist.launchCommand = supportedExts;
-					supportedFilter.matchAny = true;
-					search.filter.subfilters.push(supportedFilter);
+				// Use cached ID lists when no query or everything filter is active
+				if (!params.get('query') && params.get('everything') != 'true') {
+					const pool = params.get('nsfw') == 'true' ? randomIdsAll : randomIdsSfw;
+					if (pool.length > 0) {
+						id = pool[Math.floor(Math.random() * pool.length)];
+						entry = await fp.findGame(id);
+					}
+				}
+				else {
+					// Fallback to searchGamesRandom for query/everything filters
+					const search = fp.parseUserSearchInput('').search;
+
+					// Whitelist supported file extensions
+					if (params.get('everything') != 'true') {
+						const supportedFilter = newSubfilter();
+						supportedFilter.whitelist.launchCommand = supportedExts;
+						supportedFilter.matchAny = true;
+						search.filter.subfilters.push(supportedFilter);
+					}
+
+					// Filter NSFW entries if not explicitly specified otherwise
+					if (params.get('nsfw') != 'true') {
+						const extremeFilter = newSubfilter();
+						extremeFilter.exactBlacklist.tags = extremeTags;
+						extremeFilter.matchAny = true;
+						search.filter.subfilters.push(extremeFilter);
+					}
+
+					// Add query
+					if (params.get('query')) {
+						const searchFilter = fp.parseUserSearchInput(params.get('query')).search.filter;
+						search.filter.subfilters.push(searchFilter);
+					}
+
+					const searchResults = await fp.searchGamesRandom(search, 1);
+					if (searchResults.length > 0) {
+						id = searchResults[0].id;
+						entry = await fp.findGame(id);
+					}
 				}
 
-				// Filter NSFW entries if not explicitly specified otherwise
-				if (params.get('nsfw') != 'true') {
-					const extremeFilter = newSubfilter();
-					extremeFilter.exactBlacklist.tags = extremeTags;
-					extremeFilter.matchAny = true;
-					search.filter.subfilters.push(extremeFilter);
-				}
-
-				// Add query if one is specified
-				if (params.get('query')) {
-					const searchFilter = fp.parseUserSearchInput(params.get('query')).search.filter;
-					search.filter.subfilters.push(searchFilter);
-				}
-
-				// Perform the search
-				const searchResults = await fp.searchGamesRandom(search, 1);
-				if (searchResults.length > 0) {
-					id = searchResults[0].id;
-					entry = await fp.findGame(id);
-				}
-				else
-					return notFoundPage();
+				if (!entry) return notFoundPage();
 			}
 
 			// Check if a launch command contains a supported file extension
@@ -302,14 +313,15 @@ async function serverHandler(request) {
 			const searchResultsArr = [];
 			const tagCounts = {};
 			for (const searchResult of searchResults) {
-				// Increment tag totals
+				// Increment tag totals (tagsStr already stores primary alias names,
+				// so no need to look up each tag via findTag)
 				for (const tag of searchResult.tags) {
 					if (tag == 'Auto-zipped')
 						continue;
-					else if (tagCounts[tag])
+					if (tagCounts[tag])
 						tagCounts[tag]++;
 					else
-						tagCounts[(await fp.findTag(tag)).aliases[0]] = 1;
+						tagCounts[tag] = 1;
 				}
 
 				searchResultsArr.push(buildHtml(templates.result, {
@@ -501,10 +513,48 @@ async function initDatabase() {
 		logMessage('no database found, starting database build');
 		updateDatabase(createNew);
 	}
+	else {
+		// Cache random game IDs for fast random lookups
+		await cacheRandomIds();
+	}
 
 	// Update the database on a set interval
 	if (config.updateFrequency > 0)
 		globalThis.updateInterval = setInterval(() => updateDatabase(), config.updateFrequency * 60 * 1000);
+}
+
+// Pre-cache game IDs for fast random lookups (avoids expensive ORDER BY RANDOM() queries)
+async function cacheRandomIds() {
+	logMessage('caching game UUIDs...');
+	const start = performance.now();
+
+	// SFW: supported extensions + extreme tags blacklisted
+	const sfwSearch = fp.parseUserSearchInput('').search;
+	sfwSearch.slim = true;
+	sfwSearch.limit = 999999999;
+	const sfwExtFilter = newSubfilter();
+	sfwExtFilter.whitelist.launchCommand = supportedExts;
+	sfwExtFilter.matchAny = true;
+	sfwSearch.filter.subfilters.push(sfwExtFilter);
+	const sfwTagFilter = newSubfilter();
+	sfwTagFilter.exactBlacklist.tags = extremeTags;
+	sfwTagFilter.matchAny = true;
+	sfwSearch.filter.subfilters.push(sfwTagFilter);
+	const sfwResults = await fp.searchGames(sfwSearch);
+	globalThis.randomIdsSfw = sfwResults.map(g => g.id);
+
+	// All: supported extensions, no NSFW filtering
+	const allSearch = fp.parseUserSearchInput('').search;
+	allSearch.slim = true;
+	allSearch.limit = 999999999;
+	const allExtFilter = newSubfilter();
+	allExtFilter.whitelist.launchCommand = supportedExts;
+	allExtFilter.matchAny = true;
+	allSearch.filter.subfilters.push(allExtFilter);
+	const allResults = await fp.searchGames(allSearch);
+	globalThis.randomIdsAll = allResults.map(g => g.id);
+
+	logMessage(`cached ${randomIdsSfw.length} SFW + ${randomIdsAll.length} all random game IDs in ${(performance.now() - start).toFixed(0)}ms`);
 }
 
 // Start the web server
@@ -602,6 +652,9 @@ async function updateDatabase(createNew = false) {
 	logMessage('saving time of last update...');
 	Deno.writeTextFileSync('data/lastUpdated.txt', newLastUpdated);
 	lastUpdated = newLastUpdated;
+
+	// Refresh cached random game IDs
+	await cacheRandomIds();
 
 	// We're done
 	updateInProgress = false;

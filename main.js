@@ -268,15 +268,13 @@ async function serverHandler(request, info) {
 			const searchFilter = fp.parseUserSearchInput(searchQuery).search.filter;
 			search.filter.subfilters.push(searchFilter);
 
-			// Get search result total and page info
-			// We perform the actual search once the query receives an offset
-			const totalResults = await fp.searchGamesTotal(search);
-			const totalPages = Math.max(1, Math.ceil(totalResults / config.pageSize));
-			const currentPage = Math.max(1, Math.min(totalPages, parseInt(params.get('page'), 10) || 1));
+			// Get page offsets and current page
+			let currentPage = Math.max(1, parseInt(params.get('page'), 10) || 1);
+			const searchIndex = await fp.searchGamesIndex(search, config.pageSize * (currentPage + 1));
+			currentPage = Math.min(currentPage, searchIndex.length + 1);
 
 			// Apply offset to query based on current page
 			if (currentPage > 1) {
-				const searchIndex = await fp.searchGamesIndex(search, config.pageSize * (currentPage - 1));
 				const offset = searchIndex[currentPage - 2];
 				search.offset = {
 					value: offset.orderVal,
@@ -285,22 +283,29 @@ async function serverHandler(request, info) {
 				};
 			}
 
-			// Get URLs for page navigation buttons
-			const nthPageUrl = new URL(requestUrl);
-			nthPageUrl.searchParams.set('page', 1);
-			const firstPageUrl = nthPageUrl.search;
-			nthPageUrl.searchParams.set('page', Math.max(currentPage - 1, 1));
-			const prevPageUrl = nthPageUrl.search;
-			nthPageUrl.searchParams.set('page', Math.min(currentPage + 1, totalPages));
-			const nextPageUrl = nthPageUrl.search;
-			nthPageUrl.searchParams.set('page', totalPages);
-			const lastPageUrl = nthPageUrl.search;
-
-			// Get search results and tag totals, and build HTML for the former
+			// Perform the search
+			search.limit = config.pageSize + 1;
 			const searchResults = await fp.searchGames(search);
+			const totalResults = searchResults.length == config.pageSize + 1
+				? config.pageSize.toLocaleString('en-US') + '+'
+				: searchResults.length.toLocaleString('en-US');
+
+			// Build next/previous page buttons if applicable
+			const nthPageUrl = new URL(requestUrl);
+			let prevPage = '', nextPage = '';
+			if (currentPage > 1) {
+				nthPageUrl.searchParams.set('page', currentPage - 1);
+				prevPage = `<a href="${nthPageUrl.href}">&lt; Prev</a>`;
+			}
+			if (searchResults.length == config.pageSize + 1) {
+				nthPageUrl.searchParams.set('page', currentPage + 1);
+				nextPage = `<a href="${nthPageUrl.href}">Next &gt;</a>`;
+			}
+
+			// Build HTML for search results and get tag totals
 			const searchResultsArr = [];
 			const tagCounts = {};
-			for (const searchResult of searchResults) {
+			for (const searchResult of searchResults.slice(0, config.pageSize)) {
 				// Increment tag totals
 				for (const tag of searchResult.tags) {
 					if (tag == 'Auto-zipped')
@@ -355,14 +360,9 @@ async function serverHandler(request, info) {
 				'Query': sanitizeInject(searchQuery),
 				'NSFW_Checked': params.get('nsfw') == 'true' ? ' checked' : '',
 				'Everything_Checked': params.get('everything') == 'true' ? ' checked' : '',
-				'Total_Results': totalResults.toLocaleString('en-US'),
-				'Results_Per_Page': config.pageSize.toLocaleString('en-US'),
-				'Current_Page': currentPage.toLocaleString('en-US'),
-				'Total_Pages': totalPages.toLocaleString('en-US'),
-				'First_Page': firstPageUrl,
-				'Prev_Page': prevPageUrl,
-				'Next_Page': nextPageUrl,
-				'Last_Page': lastPageUrl,
+				'Total_Results': totalResults,
+				'Prev_Page': prevPage,
+				'Next_Page': nextPage,
 				'Tags': tagCountsArr.join('\n'),
 				'Results': searchResultsArr.join('\n'),
 			});

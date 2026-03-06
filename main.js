@@ -2,6 +2,7 @@ import { FlashpointArchive, newSubfilter } from 'npm:@fparchive/flashpoint-archi
 import { contentType } from 'jsr:@std/media-types@1.1.0';
 import { format } from 'jsr:@std/fmt@1.0.8/bytes';
 import { parseArgs } from 'jsr:@std/cli@1.0.23/parse-args';
+import { LruCache } from 'jsr:@std/cache';
 
 // Command-line flags
 const flags = parseArgs(Deno.args, {
@@ -9,6 +10,8 @@ const flags = parseArgs(Deno.args, {
 	string: ['config'],
 	default: { 'update': false, 'config': 'config.json' },
 });
+
+const cacheSize = 1000
 
 // Initialize stuff
 initGlobals();
@@ -44,10 +47,10 @@ async function serverHandler(request) {
 		hour12: false,
 	}).format(new Date(lastUpdated));
 
-	// Log the request path (no IP address or query string)
-	logMessage('served /' + requestPath);
-
 	const params = requestUrl.searchParams;
+
+	// Log the request path and query string
+	logMessage('served /' + requestPath + (requestUrl.search ? '' + decodeURIComponent(requestUrl.search) : ''));
 	const idExp = /^[a-z\d]{8}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{12}$/;
 	switch (requestPath) {
 		case '': {
@@ -139,6 +142,8 @@ async function serverHandler(request) {
 
 				if (!entry) return notFoundPage();
 			}
+
+			logMessage(`serving game ${id}`);
 
 			// Check if a launch command contains a supported file extension
 			const isSupported = launchCommand => supportedExts.some(ext => launchCommand.toLowerCase().includes(ext));
@@ -280,16 +285,24 @@ async function serverHandler(request) {
 			const searchFilter = fp.parseUserSearchInput(searchQuery).search.filter;
 			search.filter.subfilters.push(searchFilter);
 
-			// Get search result total and page info
-			// We perform the actual search once the query receives an offset
-			const totalResults = await fp.searchGamesTotal(search);
+			// Get search result total and page index (cached)
+			const cacheKey = JSON.stringify(search);
+			const cacheStart = performance.now();
+			let cached = browseCache.get(cacheKey);
+			if (!cached) {
+				const total = await fp.searchGamesTotal(search);
+				const index = total > config.pageSize ? await fp.searchGamesIndex(search, total) : [];
+				cached = { total, index };
+				browseCache.set(cacheKey, cached);
+			}
+
+			const totalResults = cached.total;
 			const totalPages = Math.max(1, Math.ceil(totalResults / config.pageSize));
 			const currentPage = Math.max(1, Math.min(totalPages, parseInt(params.get('page'), 10) || 1));
 
 			// Apply offset to query based on current page
 			if (currentPage > 1) {
-				const searchIndex = await fp.searchGamesIndex(search, config.pageSize * (currentPage - 1));
-				const offset = searchIndex[currentPage - 2];
+				const offset = cached.index[currentPage - 2];
 				search.offset = {
 					value: offset.orderVal,
 					title: offset.title,
@@ -483,6 +496,8 @@ function initGlobals() {
 
 	globalThis.extremeTags = JSON.parse(Deno.readTextFileSync('data/extreme.json'));
 	globalThis.entryFields = JSON.parse(Deno.readTextFileSync('data/fields.json'));
+
+	globalThis.browseCache = new LruCache(cacheSize);
 }
 
 // Load/update/build Flashpoint database
@@ -655,6 +670,9 @@ async function updateDatabase(createNew = false) {
 
 	// Refresh cached random game IDs
 	await cacheRandomIds();
+
+	// Clear browse cache
+	globalThis.browseCache = new LruCache(cacheSize);
 
 	// We're done
 	updateInProgress = false;

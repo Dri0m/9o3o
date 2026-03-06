@@ -493,7 +493,7 @@ function initGlobals() {
 	globalThis.extremeTags = JSON.parse(Deno.readTextFileSync('data/extreme.json'));
 	globalThis.entryFields = JSON.parse(Deno.readTextFileSync('data/fields.json'));
 
-	globalThis.browseCache = new LruCache(100);
+	globalThis.browseCache = new LruCache(1000);
 }
 
 // Load/update/build Flashpoint database

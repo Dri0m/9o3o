@@ -143,6 +143,8 @@ async function serverHandler(request) {
 				if (!entry) return notFoundPage();
 			}
 
+			logMessage(`serving game ${id}`);
+
 			// Check if a launch command contains a supported file extension
 			const isSupported = launchCommand => supportedExts.some(ext => launchCommand.toLowerCase().includes(ext));
 

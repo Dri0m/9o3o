@@ -45,10 +45,10 @@ async function serverHandler(request) {
 		hour12: false,
 	}).format(new Date(lastUpdated));
 
-	// Log the request path (no IP address or query string)
-	logMessage('served /' + requestPath);
-
 	const params = requestUrl.searchParams;
+
+	// Log the request path and query string
+	logMessage('served /' + requestPath + (requestUrl.search ? '' + decodeURIComponent(requestUrl.search) : ''));
 	const idExp = /^[a-z\d]{8}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{12}$/;
 	switch (requestPath) {
 		case '': {

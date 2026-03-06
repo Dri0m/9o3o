@@ -302,14 +302,15 @@ async function serverHandler(request) {
 			const searchResultsArr = [];
 			const tagCounts = {};
 			for (const searchResult of searchResults) {
-				// Increment tag totals
+				// Increment tag totals (tagsStr already stores primary alias names,
+				// so no need to look up each tag via findTag)
 				for (const tag of searchResult.tags) {
 					if (tag == 'Auto-zipped')
 						continue;
-					else if (tagCounts[tag])
+					if (tagCounts[tag])
 						tagCounts[tag]++;
 					else
-						tagCounts[(await fp.findTag(tag)).aliases[0]] = 1;
+						tagCounts[tag] = 1;
 				}
 
 				searchResultsArr.push(buildHtml(templates.result, {

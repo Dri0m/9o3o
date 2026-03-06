@@ -2,6 +2,7 @@ import { FlashpointArchive, newSubfilter } from 'npm:@fparchive/flashpoint-archi
 import { contentType } from 'jsr:@std/media-types@1.1.0';
 import { format } from 'jsr:@std/fmt@1.0.8/bytes';
 import { parseArgs } from 'jsr:@std/cli@1.0.23/parse-args';
+import { LruCache } from 'jsr:@std/cache';
 
 // Command-line flags
 const flags = parseArgs(Deno.args, {
@@ -280,16 +281,24 @@ async function serverHandler(request) {
 			const searchFilter = fp.parseUserSearchInput(searchQuery).search.filter;
 			search.filter.subfilters.push(searchFilter);
 
-			// Get search result total and page info
-			// We perform the actual search once the query receives an offset
-			const totalResults = await fp.searchGamesTotal(search);
+			// Get search result total and page index (cached)
+			const cacheKey = JSON.stringify(search);
+			const cacheStart = performance.now();
+			let cached = browseCache.get(cacheKey);
+			if (!cached) {
+				const total = await fp.searchGamesTotal(search);
+				const index = total > config.pageSize ? await fp.searchGamesIndex(search, total) : [];
+				cached = { total, index };
+				browseCache.set(cacheKey, cached);
+			}
+
+			const totalResults = cached.total;
 			const totalPages = Math.max(1, Math.ceil(totalResults / config.pageSize));
 			const currentPage = Math.max(1, Math.min(totalPages, parseInt(params.get('page'), 10) || 1));
 
 			// Apply offset to query based on current page
 			if (currentPage > 1) {
-				const searchIndex = await fp.searchGamesIndex(search, config.pageSize * (currentPage - 1));
-				const offset = searchIndex[currentPage - 2];
+				const offset = cached.index[currentPage - 2];
 				search.offset = {
 					value: offset.orderVal,
 					title: offset.title,
@@ -483,6 +492,8 @@ function initGlobals() {
 
 	globalThis.extremeTags = JSON.parse(Deno.readTextFileSync('data/extreme.json'));
 	globalThis.entryFields = JSON.parse(Deno.readTextFileSync('data/fields.json'));
+
+	globalThis.browseCache = new LruCache(100);
 }
 
 // Load/update/build Flashpoint database
@@ -655,6 +666,9 @@ async function updateDatabase(createNew = false) {
 
 	// Refresh cached random game IDs
 	await cacheRandomIds();
+
+	// Clear browse cache
+	globalThis.browseCache = new LruCache(100);
 
 	// We're done
 	updateInProgress = false;

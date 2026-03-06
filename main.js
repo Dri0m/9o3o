@@ -19,7 +19,7 @@ await initDatabase();
 initServer();
 
 // Handle requests
-async function serverHandler(request) {
+async function serverHandler(request, info) {
 	// Make sure request is for a valid URL
 	const requestUrl = URL.parse(request.url);
 	if (requestUrl === null) throw new BadRequestError();
@@ -49,8 +49,8 @@ async function serverHandler(request) {
 
 	const params = requestUrl.searchParams;
 
-	// Log the request path and query string
-	logMessage('served /' + requestPath + (requestUrl.search ? '' + decodeURIComponent(requestUrl.search) : ''));
+	// Log the request path, query string, IP and user agent
+	logMessage(`${info.remoteAddr.hostname} (${request.headers.get('User-Agent') ?? ''}): served /${requestPath}${requestUrl.search ? ' ' + decodeURIComponent(requestUrl.search) : ''}`);
 	const idExp = /^[a-z\d]{8}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{12}$/;
 	switch (requestPath) {
 		case '': {

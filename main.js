@@ -11,6 +11,8 @@ const flags = parseArgs(Deno.args, {
 	default: { 'update': false, 'config': 'config.json' },
 });
 
+const cacheSize = 1000
+
 // Initialize stuff
 initGlobals();
 await initDatabase();
@@ -493,7 +495,7 @@ function initGlobals() {
 	globalThis.extremeTags = JSON.parse(Deno.readTextFileSync('data/extreme.json'));
 	globalThis.entryFields = JSON.parse(Deno.readTextFileSync('data/fields.json'));
 
-	globalThis.browseCache = new LruCache(1000);
+	globalThis.browseCache = new LruCache(cacheSize);
 }
 
 // Load/update/build Flashpoint database
@@ -668,7 +670,7 @@ async function updateDatabase(createNew = false) {
 	await cacheRandomIds();
 
 	// Clear browse cache
-	globalThis.browseCache = new LruCache(100);
+	globalThis.browseCache = new LruCache(cacheSize);
 
 	// We're done
 	updateInProgress = false;

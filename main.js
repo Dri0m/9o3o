@@ -54,6 +54,8 @@ async function serverHandler(request, info) {
 	const idExp = /^[a-z\d]{8}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{12}$/;
 	switch (requestPath) {
 		case '': {
+			let requestedId;
+
 			// Build query string for random links
 			const randomParams = new URLSearchParams();
 			if (params.get('query'))
@@ -69,6 +71,7 @@ async function serverHandler(request, info) {
 			// Return Not Found page if needed
 			const notFoundPage = () => new Response(buildHtml(templates.shell, {
 				'Title': 'Entry Not Found - 9o3o',
+				'Head': '',
 				'Styles': '',
 				'Scripts': '',
 				'Content': 'The entry could not be found.',
@@ -81,12 +84,16 @@ async function serverHandler(request, info) {
 			let id;
 			if (params.has('id')) {
 				id = params.get('id');
+				requestedId = id;
 				if (!idExp.test(id)) return notFoundPage();
 			}
 			else {
 				// Backward compatibility with old ID query strings
 				const queryString = requestUrl.search.substring(1);
-				if (idExp.test(queryString)) id = queryString;
+				if (idExp.test(queryString)) {
+					id = queryString;
+					requestedId = id;
+				}
 			}
 
 			// Fetch the entry
@@ -230,6 +237,25 @@ async function serverHandler(request, info) {
 				if (params.has(field))
 					directLink.searchParams.set(field, params.get(field));
 			}
+			// Build meta for robots and stuff
+			// The `/` without an ID has a generic description instead of game details to improve search engine results
+			const isRandomLanding = !requestedId;
+			const pageTitle = isRandomLanding ? '9o3o' : `${title} - 9o3o`;
+			const pageDescription = isRandomLanding
+				? '9o3o is a browser-playable archive of web games and animations from the Flashpoint Archive.'
+				: `${entry.title} on 9o3o.`;
+			const headTags = [
+				buildCanonical(directLink.href),
+				buildMetaDescription(pageDescription),
+				buildMetaProperty('og:title', isRandomLanding ? '9o3o' : decodeHtmlEntities(title)),
+				buildMetaProperty('og:description', pageDescription),
+				buildMetaProperty('og:type', 'website'),
+				buildMetaProperty('og:url', directLink.href),
+			];
+			if (isRandomLanding) {
+				responseHeaders.set('X-Robots-Tag', 'noindex, follow');
+				headTags.unshift(buildMetaRobots('noindex, follow'));
+			}
 
 			// Build page HTML
 			const playerHtml = buildHtml(templates.player, {
@@ -247,7 +273,8 @@ async function serverHandler(request, info) {
 				'Game_Data_Table': sortedGameData.length == 0 ? '' : sortedGameData.map(gameData => buildTable(gameData, entryFields.gameData)).join('\n'),
 			});
 			const shellHtml = buildHtml(templates.shell, {
-				'Title': title + ' - 9o3o',
+				'Title': pageTitle,
+				'Head': buildHead(...headTags),
 				'Styles': buildStyles('/player.css'),
 				'Scripts': buildScripts('/player.js'),
 				'Content': playerHtml,
@@ -394,6 +421,7 @@ async function serverHandler(request, info) {
 			});
 			const shellHtml = buildHtml(templates.shell, {
 				'Title': 'Browse - 9o3o',
+				'Head': '',
 				'Styles': buildStyles('/browse.css'),
 				'Scripts': buildScripts('/browse.js'),
 				'Content': browseHtml,
@@ -409,6 +437,7 @@ async function serverHandler(request, info) {
 			// Serve FAQ
 			return new Response(buildHtml(templates.shell, {
 				'Title': 'FAQ - 9o3o',
+				'Head': '',
 				'Styles': buildStyles('/faq.css'),
 				'Scripts': '',
 				'Content': templates.faq,
@@ -809,6 +838,11 @@ function buildTable(source, fields) {
 // Build external resource elements
 function buildStyles(...urls) { return urls.map(url => `<link rel="stylesheet" href="${url}">`).join('\n'); }
 function buildScripts(...urls) { return urls.map(url => `<script src="${url}"></script>`).join('\n'); }
+function buildHead(...tags) { return tags.filter(Boolean).join('\n'); }
+function buildMetaRobots(content) { return `<meta name="robots" content="${content}">`; }
+function buildMetaDescription(content) { return `<meta name="description" content="${sanitizeInject(content)}">`; }
+function buildMetaProperty(property, content) { return `<meta property="${property}" content="${sanitizeInject(content)}">`; }
+function buildCanonical(url) { return `<link rel="canonical" href="${sanitizeInject(url)}">`; }
 
 // Replace slices of a string with different values
 function replaceSlices(str, slices) {
@@ -832,6 +866,14 @@ function sanitizeInject(str) {
 	};
 	const charMapExp = new RegExp(`[${Object.keys(charMap).join('')}]`, 'g');
 	return str.replace(charMapExp, m => charMap[m]);
+}
+
+function decodeHtmlEntities(str) {
+	return str
+		.replaceAll('&lt;', '<')
+		.replaceAll('&gt;', '>')
+		.replaceAll('&quot;', '"')
+		.replaceAll('&#x1F51E;', '\u{1F51E}');
 }
 
 // Run Deno.lstat without throwing error if path doesn't exist

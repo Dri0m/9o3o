@@ -50,6 +50,8 @@ const players = {
 
 		// Create player instance and add to page
 		const player = window.RufflePlayer.newest().createPlayer();
+		player.config.letterbox = "on";
+		player.config.backgroundColor = "#000000";
 		player.className = 'player';
 		container.append(player);
 

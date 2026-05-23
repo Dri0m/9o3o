@@ -143,8 +143,8 @@ const players = {
 			// Get request as URL object
 			const resourceUrl = new URL(resource instanceof Request ? resource.url : resource);
 
-			// Don't redirect if the requested URL doesn't use HTTP
-			if (!resourceUrl.protocol.startsWith('http'))
+			// Don't redirect if the requested URL doesn't use HTTP or is a WASM file
+			if (!resourceUrl.protocol.startsWith('http') || resourceUrl.pathname.endsWith('.wasm'))
 				return await _fetch(resource, options);
 
 			// Get redirected URL and fetch

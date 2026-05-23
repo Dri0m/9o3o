@@ -16,6 +16,8 @@ body[data-dragging='true'] {
 	position: relative;
 }
 .player-container:not(.loading) {
+	width: 100%;
+
 	line-height: 0;
 }
 .loading {

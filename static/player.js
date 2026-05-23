@@ -50,7 +50,6 @@ const players = {
 
 		// Create player instance and add to page
 		const player = window.RufflePlayer.newest().createPlayer();
-		player.config.backgroundColor = "#000000";
 		player.className = 'player';
 		container.append(player);
 
@@ -60,7 +59,13 @@ const players = {
 			// Set base URL to directory of launch command
 			base: entryData.launchCommand.substring(0, entryData.launchCommand.lastIndexOf('/') + 1),
 			// Allow entries that use ExternalInterface to work
-			allowScriptAccess: true
+			allowScriptAccess: true,
+			// Keep fullscreen constrained to the intended stage instead of exposing offstage content
+			scale: 'showAll',
+			forceScale: true,
+			letterbox: 'on',
+			wmode: 'opaque',
+			backgroundColor: '#000000'
 		});
 
 		// Use custom player width/height if supplied
@@ -86,6 +91,9 @@ const players = {
 		// Use Flash Player defaults if width or height is invalid
 		if (width <= 1) width = 550;
 		if (height <= 1) height = 400;
+
+		// Keep Ruffle's own fullscreen mode matched to the same dimensions used by the page sizer
+		initFullscreenFit(player, width, height);
 
 		// Build the sizer
 		await initSizer(container, width, height);
@@ -233,6 +241,44 @@ const players = {
 		player.browser.loadURL(new X3D.MFString((await redirect(new URL(entryData.launchCommand))).new));
 	}
 };
+
+// Keep fullscreen players centered at the intended aspect ratio
+function initFullscreenFit(player, width, height) {
+	const ratio = width / height;
+	const fullscreenElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+
+	const resize = () => {
+		if (fullscreenElement() !== player)
+			return;
+
+		let fullscreenWidth = window.innerWidth;
+		let fullscreenHeight = window.innerHeight;
+		if (fullscreenWidth / fullscreenHeight > ratio)
+			fullscreenWidth = Math.round(fullscreenHeight * ratio);
+		else
+			fullscreenHeight = Math.round(fullscreenWidth / ratio);
+
+		player.style.setProperty('width', `${fullscreenWidth}px`, 'important');
+		player.style.setProperty('height', `${fullscreenHeight}px`, 'important');
+	};
+
+	const fullscreenChange = () => {
+		if (fullscreenElement() === player) {
+			player.classList.add('fullscreen-fit');
+			resize();
+			window.addEventListener('resize', resize);
+		}
+		else {
+			player.classList.remove('fullscreen-fit');
+			player.style.removeProperty('width');
+			player.style.removeProperty('height');
+			window.removeEventListener('resize', resize);
+		}
+	};
+
+	document.addEventListener('fullscreenchange', fullscreenChange);
+	document.addEventListener('webkitfullscreenchange', fullscreenChange);
+}
 
 // Take a request and return a redirected URL (and the old one too)
 async function redirect(request) {
@@ -437,19 +483,13 @@ function initFileViewer() {
 	panel.append(filesHeader, filesTable);
 }
 
-// Build an aspect ratio-maintaining image element to properly scale player
+// Build an aspect ratio-maintaining element to properly scale player
 async function initSizer(container, width, height) {
-	// Create image element
-	const sizer = document.createElement('img');
+	container.style.setProperty('--player-aspect-ratio', `${width} / ${height}`);
+
+	// Create sizer element
+	const sizer = document.createElement('div');
 	sizer.className = 'sizer';
-
-	// Create canvas from which image data will be derived
-	const canvas = document.createElement('canvas');
-	[canvas.width, canvas.height] = [width, height];
-
-	// Get image data from canvas and apply to element
-	const blob = await new Promise(resolve => canvas.toBlob(blob => resolve(blob)));
-	sizer.src = URL.createObjectURL(blob);
 
 	// Add sizer to page
 	container.append(sizer);

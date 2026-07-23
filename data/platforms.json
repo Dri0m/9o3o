@@ -3,7 +3,8 @@
 		"name": "Flash",
 		"player": "Ruffle",
 		"extensions": [
-			".swf"
+			".swf",
+			".spl"
 		]
 	},
 	{

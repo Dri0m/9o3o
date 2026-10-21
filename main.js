@@ -1,8 +1,8 @@
-import { FlashpointArchive, newSubfilter } from 'npm:@fparchive/flashpoint-archive';
+import { FlashpointArchive, newSubfilter } from 'npm:@fparchive/flashpoint-archive@0.13.7';
 import { contentType } from 'jsr:@std/media-types@1.1.0';
-import { format } from 'jsr:@std/fmt@1.0.8/bytes';
-import { parseArgs } from 'jsr:@std/cli@1.0.23/parse-args';
-import { LruCache } from 'jsr:@std/cache';
+import { format } from 'jsr:@std/fmt@1.0.10/bytes';
+import { parseArgs } from 'jsr:@std/cli@1.0.32/parse-args';
+import { LruCache } from 'jsr:@std/cache@0.2.4';
 
 // Command-line flags
 const flags = parseArgs(Deno.args, {

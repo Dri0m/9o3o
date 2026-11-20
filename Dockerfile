@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN deno cache main.js
+RUN deno cache --frozen --lock=deno.lock main.js
 
 EXPOSE 80
 

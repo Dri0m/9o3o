@@ -1,0 +1,61 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@std/cache@0.2.4": "0.2.4",
+    "jsr:@std/cli@1.0.32": "1.0.32",
+    "jsr:@std/fmt@1.0.10": "1.0.10",
+    "jsr:@std/media-types@1.1.0": "1.1.0",
+    "npm:@fparchive/flashpoint-archive@0.13.7": "0.13.7"
+  },
+  "jsr": {
+    "@std/cache@0.2.4": {
+      "integrity": "3786a6961a8a851c651f6fa4c39d46e7ce9c098630689655ea53e5143eb3565b"
+    },
+    "@std/cli@1.0.32": {
+      "integrity": "188b3a100d6202d64e3f5bd3d799c7fa4f6d77f92cc65eb7f641c1fa0aa92a66"
+    },
+    "@std/fmt@1.0.10": {
+      "integrity": "90dfba288802ac6de82fb31d0917eb9e4450b9925b954d5e51fc29ac07419db5"
+    },
+    "@std/media-types@1.1.0": {
+      "integrity": "c9d093f0c05c3512932b330e3cc1fe1d627b301db33a4c2c2185c02471d6eaa4"
+    }
+  },
+  "npm": {
+    "@fparchive/flashpoint-archive-darwin-arm64@0.13.7": {
+      "integrity": "sha512-bjuiO+bcsHJHmboJ4HVA4Pc4M5yzioVrJOoyzUxSzv/BdayhieJGPcpXGVhVjo/WcuYXSKoSAxCoj6XTIfR1OQ==",
+      "os": ["darwin"],
+      "cpu": ["arm64"]
+    },
+    "@fparchive/flashpoint-archive-darwin-x64@0.13.7": {
+      "integrity": "sha512-g8FI/0p0aou9srCinhM+lJVJ+aE2fdQX+bUMEb/ji6mEN0FWIbQherfUQPbl46zhIVEqO4C+BTAdNSpZi+Gvow==",
+      "os": ["darwin"],
+      "cpu": ["x64"]
+    },
+    "@fparchive/flashpoint-archive-linux-x64-gnu@0.13.7": {
+      "integrity": "sha512-OCYl0pAEhHRSoAc4qOaE64kCMLb7uO/9Xell4uuf77AREZIqmJvkQhqkn7HDqDHIWK09j4uXR+pNR6Yn50pO/g==",
+      "os": ["linux"],
+      "cpu": ["x64"]
+    },
+    "@fparchive/flashpoint-archive-win32-ia32-msvc@0.13.7": {
+      "integrity": "sha512-aVuy1M9LL8lxzK0vHQeIPwtdnzBFinhkvysmltub+XDxk6HvzEzLfFrDpUK0QKJjewZnjw2kztQ3Ep0koY+FHw==",
+      "os": ["win32"],
+      "cpu": ["ia32"]
+    },
+    "@fparchive/flashpoint-archive-win32-x64-msvc@0.13.7": {
+      "integrity": "sha512-yFo0tBqIDUOBkMGosv29gxoeH5EIWgRbh+KBwp/uUJKkWvGgsd97COfhqZhZaMxHvD6mzzKtNzQNE76QpJSVCg==",
+      "os": ["win32"],
+      "cpu": ["x64"]
+    },
+    "@fparchive/flashpoint-archive@0.13.7": {
+      "integrity": "sha512-cXb7xzf54f/y1dutS53/vHJI3zTXFLFc7JXFp63BFyz2ioOjt6JEMzPAklhNlcObEZ+Cgx0QK+vQPnEwYwuNig==",
+      "optionalDependencies": [
+        "@fparchive/flashpoint-archive-darwin-arm64",
+        "@fparchive/flashpoint-archive-darwin-x64",
+        "@fparchive/flashpoint-archive-linux-x64-gnu",
+        "@fparchive/flashpoint-archive-win32-ia32-msvc",
+        "@fparchive/flashpoint-archive-win32-x64-msvc"
+      ]
+    }
+  }
+}
